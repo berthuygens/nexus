@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(frontend-design)",
+      "Bash(open:*)",
+      "Bash(chmod:*)",
+      "Bash(/Users/sysopbeta/code/browser/update-calendar.sh)",
+      "Bash(cat:*)",
+      "Bash(osascript:*)",
+      "Bash(brew install:*)",
+      "Bash(icalBuddy:*)",
+      "Bash(python3:*)",
+      "Bash(crontab:*)",
+      "Bash(launchctl load:*)",
+      "Bash(launchctl list:*)",
+      "Bash(log show:*)",
+      "Bash(launchctl unload:*)",
+      "Bash(curl:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill -9 launchctl unload ~/Library/LaunchAgents/com.sysopbeta.browser.plist sleep 1 launchctl load ~/Library/LaunchAgents/com.sysopbeta.browser.plist sleep 2 launchctl list)",
+      "Bash(pkill -9 -f \"http.server 8080\" sleep 2 launchctl unload ~/Library/LaunchAgents/com.sysopbeta.browser.plist launchctl load ~/Library/LaunchAgents/com.sysopbeta.browser.plist sleep 2 launchctl list)",
+      "Bash(pkill:*)",
+      "Bash(gh auth status:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(gh repo create:*)",
+      "Bash(git rm:*)",
+      "Bash(git push)",
+      "Bash(gh api:*)",
+      "Bash(npm install:*)",
+      "Bash(wrangler login:*)",
+      "Bash(wrangler kv:namespace:*)",
+      "Bash(wrangler kv namespace:*)",
+      "Bash(wrangler secret put:*)",
+      "Bash(wrangler deploy:*)",
+      "Bash(wrangler whoami:*)",
+      "Bash(git remote set-url:*)",
+      "Bash(git checkout:*)"
+    ]
+  }
+}

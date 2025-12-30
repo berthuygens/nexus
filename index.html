@@ -1,0 +1,1916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DAEMON</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --border-color: #30363d;
+            --border-hover: #484f58;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+            --accent-green: #3fb950;
+            --accent-green-dim: #238636;
+            --accent-blue: #58a6ff;
+            --accent-purple: #a371f7;
+            --accent-orange: #d29922;
+            --accent-red: #f85149;
+            --accent-cyan: #39c5cf;
+            --glow-green: rgba(63, 185, 80, 0.15);
+            --glow-blue: rgba(88, 166, 255, 0.1);
+            --scanline: rgba(0, 0, 0, 0.03);
+        }
+
+        /* Light mode */
+        [data-theme="light"] {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f6f8fa;
+            --bg-tertiary: #eaeef2;
+            --border-color: #d0d7de;
+            --border-hover: #afb8c1;
+            --text-primary: #1f2328;
+            --text-secondary: #656d76;
+            --text-muted: #8c959f;
+            --accent-green: #1a7f37;
+            --accent-green-dim: #2da44e;
+            --accent-blue: #0969da;
+            --accent-purple: #8250df;
+            --accent-orange: #bf8700;
+            --accent-red: #cf222e;
+            --accent-cyan: #1b7c83;
+            --glow-green: rgba(26, 127, 55, 0.1);
+            --glow-blue: rgba(9, 105, 218, 0.1);
+            --scanline: rgba(0, 0, 0, 0.01);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 15px;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Subtle scanline effect */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                var(--scanline) 2px,
+                var(--scanline) 4px
+            );
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.4;
+        }
+
+        /* Noise texture overlay */
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            opacity: 0.02;
+            pointer-events: none;
+            z-index: 9998;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* ASCII Art Header */
+        .ascii-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 2rem 0;
+        }
+
+        .ascii-art {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            line-height: 1.1;
+            color: var(--accent-green);
+            white-space: pre;
+            text-shadow: 0 0 10px var(--glow-green), 0 0 20px var(--glow-green);
+            display: inline-block;
+        }
+
+        .terminal-prompt {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .prompt-symbol {
+            color: var(--accent-green);
+        }
+
+        .prompt-path {
+            color: var(--accent-blue);
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 1.2em;
+            background: var(--accent-green);
+            animation: blink 1s step-end infinite;
+            vertical-align: middle;
+            margin-left: 2px;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        /* Search Box */
+        .search-section {
+            margin-bottom: 2.5rem;
+        }
+
+        .search-container {
+            position: relative;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 1rem 1.25rem 1rem 3rem;
+            font-family: inherit;
+            font-size: 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px var(--glow-blue), 0 0 20px var(--glow-blue);
+        }
+
+        .search-box::placeholder {
+            color: var(--text-muted);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        .search-hint {
+            text-align: center;
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .search-hint kbd {
+            background: var(--bg-tertiary);
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            font-family: inherit;
+        }
+
+        /* Dashboard Grid */
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            border-color: var(--border-hover);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+        }
+
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .card-icon {
+            width: 20px;
+            height: 20px;
+            opacity: 0.9;
+        }
+
+        .card-badge {
+            font-size: 0.75rem;
+            padding: 0.2rem 0.6rem;
+            background: var(--bg-primary);
+            border-radius: 10px;
+            color: var(--text-secondary);
+        }
+
+        .card-body {
+            padding: 1rem 1.25rem;
+            max-height: 350px;
+            overflow-y: auto;
+        }
+
+        .card-body::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .card-body::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .card-body::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        .card-body::-webkit-scrollbar-thumb:hover {
+            background: var(--border-hover);
+        }
+
+        /* GitHub Items */
+        .github-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.875rem;
+            margin: -0.25rem -0.5rem;
+            border-radius: 8px;
+            transition: background 0.15s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .github-item:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .github-item + .github-item {
+            margin-top: 0.25rem;
+        }
+
+        .item-icon {
+            flex-shrink: 0;
+            width: 16px;
+            height: 16px;
+            margin-top: 2px;
+        }
+
+        .item-icon.issue {
+            color: var(--accent-green);
+        }
+
+        .item-icon.pr {
+            color: var(--accent-purple);
+        }
+
+        .item-icon.pr-merged {
+            color: var(--accent-purple);
+        }
+
+        .item-icon.pr-draft {
+            color: var(--text-muted);
+        }
+
+        .item-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .item-title {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .item-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .item-repo {
+            color: var(--text-secondary);
+        }
+
+        .item-labels {
+            display: flex;
+            gap: 0.35rem;
+            margin-top: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .label {
+            font-size: 0.7rem;
+            padding: 0.1rem 0.5rem;
+            border-radius: 10px;
+            font-weight: 500;
+        }
+
+        /* Empty States */
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+        }
+
+        .empty-icon {
+            font-size: 2rem;
+            margin-bottom: 0.75rem;
+            opacity: 0.5;
+        }
+
+        .empty-text {
+            font-size: 0.875rem;
+        }
+
+        /* Loading State */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 2rem;
+            color: var(--text-muted);
+        }
+
+        .loading-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .loading-dots span {
+            width: 6px;
+            height: 6px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            animation: loadingDot 1.4s infinite ease-in-out both;
+        }
+
+        .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+        .loading-dots span:nth-child(3) { animation-delay: 0; }
+
+        @keyframes loadingDot {
+            0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Settings Button */
+        .settings-btn {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            width: 48px;
+            height: 48px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            z-index: 100;
+        }
+
+        .settings-btn:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--border-hover);
+            color: var(--text-primary);
+            transform: rotate(30deg);
+        }
+
+        /* Theme Toggle Button */
+        .theme-btn {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 5rem;
+            width: 48px;
+            height: 48px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            z-index: 100;
+        }
+
+        .theme-btn:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--border-hover);
+            color: var(--text-primary);
+        }
+
+        .theme-btn .sun-icon {
+            display: none;
+        }
+
+        .theme-btn .moon-icon {
+            display: block;
+        }
+
+        [data-theme="light"] .theme-btn .sun-icon {
+            display: block;
+        }
+
+        [data-theme="light"] .theme-btn .moon-icon {
+            display: none;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: scale(0.95) translateY(10px);
+            transition: transform 0.2s ease;
+        }
+
+        .modal-overlay.active .modal {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-title {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0.25rem;
+            display: flex;
+            transition: color 0.15s;
+        }
+
+        .modal-close:hover {
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 1.25rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .form-hint {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.35rem;
+        }
+
+        .form-hint a {
+            color: var(--accent-blue);
+            text-decoration: none;
+        }
+
+        .form-hint a:hover {
+            text-decoration: underline;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            font-family: inherit;
+            font-size: 0.875rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px var(--glow-blue);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            font-family: inherit;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn-primary {
+            background: var(--accent-green-dim);
+            border: 1px solid var(--accent-green);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-green);
+        }
+
+        .btn-block {
+            width: 100%;
+        }
+
+        /* Status indicator */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem;
+            padding: 0.75rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border-color);
+            margin-top: 2rem;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--text-muted);
+        }
+
+        .status-dot.connected {
+            background: var(--accent-green);
+            box-shadow: 0 0 8px var(--accent-green);
+        }
+
+        .status-dot.disconnected {
+            background: var(--accent-red);
+        }
+
+        /* Quick Links */
+        .quick-links {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .quick-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.8rem;
+            transition: all 0.15s ease;
+        }
+
+        .quick-link:hover {
+            border-color: var(--border-hover);
+            color: var(--text-primary);
+            background: var(--bg-tertiary);
+        }
+
+        .quick-link.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .quick-link.drag-over {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 2px var(--glow-blue);
+        }
+
+        .quick-links.drag-active .quick-link {
+            cursor: grab;
+        }
+
+        /* Profile Picture */
+        .profile-link {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.5rem;
+            z-index: 100;
+        }
+
+        .profile-pic {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid var(--border-color);
+            object-fit: cover;
+            transition: all 0.2s ease;
+            background: var(--bg-secondary);
+        }
+
+        .profile-pic:hover {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px var(--glow-blue);
+            transform: scale(1.05);
+        }
+
+        .profile-placeholder {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid var(--border-color);
+            background: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            transition: all 0.2s ease;
+        }
+
+        .profile-placeholder:hover {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px var(--glow-blue);
+        }
+
+        /* Calendar reconnect button */
+        .calendar-reconnect {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.6rem;
+            font-family: inherit;
+            font-size: 0.7rem;
+            font-weight: 500;
+            background: var(--accent-orange);
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .calendar-reconnect:hover {
+            background: var(--accent-red);
+            transform: scale(1.02);
+        }
+
+        .calendar-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .calendar-expiry-warning {
+            font-size: 0.7rem;
+            color: var(--accent-orange);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .ascii-art {
+                font-size: 0.35rem;
+            }
+
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            .quick-links {
+                gap: 0.5rem;
+            }
+
+            .quick-link span:last-child {
+                display: none;
+            }
+        }
+
+        /* Clock */
+        .clock {
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .clock-time {
+            font-size: 0.875rem;
+            font-weight: 400;
+            color: var(--text-secondary);
+        }
+
+        .clock-date {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Profile Picture -->
+    <a href="https://github.com/berthuygens?tab=repositories" class="profile-link" id="profile-link" title="Profile">
+        <div class="profile-placeholder" id="profile-placeholder">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+        </div>
+        <img src="" alt="Profile" class="profile-pic" id="profile-pic" style="display: none;">
+    </a>
+
+    <div class="container">
+        <!-- ASCII Art Header -->
+        <header class="ascii-header">
+            <pre class="ascii-art">
+  ██████╗  █████╗ ███████╗███╗   ███╗ ██████╗ ███╗   ██╗
+  ██╔══██╗██╔══██╗██╔════╝████╗ ████║██╔═══██╗████╗  ██║
+  ██║  ██║███████║█████╗  ██╔████╔██║██║   ██║██╔██╗ ██║
+  ██║  ██║██╔══██║██╔══╝  ██║╚██╔╝██║██║   ██║██║╚██╗██║
+  ██████╔╝██║  ██║███████╗██║ ╚═╝ ██║╚██████╔╝██║ ╚████║
+  ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
+            </pre>
+            <div class="clock">
+                <div class="clock-time" id="clock-time">--:--</div>
+                <div class="clock-date" id="clock-date"></div>
+            </div>
+            <div class="terminal-prompt">
+                <span class="prompt-symbol">❯</span>
+                <span class="prompt-path">~/daemon</span>
+                <span>ready</span>
+                <span class="cursor"></span>
+            </div>
+        </header>
+
+        <!-- Search -->
+        <section class="search-section">
+            <form class="search-container" id="search-form" action="https://www.google.be/search" method="GET">
+                <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.3-4.3"></path>
+                </svg>
+                <input type="text" name="q" class="search-box" placeholder="Search Google.be..." autocomplete="off" autofocus>
+            </form>
+            <p class="search-hint">Press <kbd>Enter</kbd> to search · <kbd>/</kbd> to focus</p>
+        </section>
+
+        <!-- Dashboard -->
+        <section class="dashboard">
+            <!-- Assigned Issues -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M12 16v-4"></path>
+                            <path d="M12 8h.01"></path>
+                        </svg>
+                        Assigned Issues
+                    </div>
+                    <span class="card-badge" id="issues-count">0</span>
+                </div>
+                <div class="card-body" id="issues-container">
+                    <div class="loading">
+                        <div class="loading-dots">
+                            <span></span><span></span><span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pull Requests -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="18" cy="18" r="3"></circle>
+                            <circle cx="6" cy="6" r="3"></circle>
+                            <path d="M6 9v12"></path>
+                            <path d="M18 9a9 9 0 0 0-9 9"></path>
+                        </svg>
+                        My Pull Requests
+                    </div>
+                    <span class="card-badge" id="prs-count">0</span>
+                </div>
+                <div class="card-body" id="prs-container">
+                    <div class="loading">
+                        <div class="loading-dots">
+                            <span></span><span></span><span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upcoming Meetings -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        Upcoming Meetings
+                    </div>
+                    <div class="calendar-status" id="calendar-status"></div>
+                </div>
+                <div class="card-body" id="calendar-container">
+                    <div class="loading">
+                        <div class="loading-dots">
+                            <span></span><span></span><span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            </section>
+
+        <!-- Quick Links -->
+        <nav class="quick-links" id="quick-links"></nav>
+
+        <!-- Status Bar -->
+        <footer class="status-bar">
+            <div class="status-item">
+                <span class="status-dot" id="github-status"></span>
+                <span>GitHub</span>
+            </div>
+                        <div class="status-item" id="last-updated"></div>
+            <div class="status-item" id="random-quote" style="font-style: italic; opacity: 0.8;"></div>
+        </footer>
+    </div>
+
+    <!-- Theme Toggle Button -->
+    <button class="theme-btn" id="theme-btn" title="Toggle theme">
+        <svg class="moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+        <svg class="sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+    </button>
+
+    <!-- Settings Button -->
+    <button class="settings-btn" id="settings-btn" title="Settings">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+    </button>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">⚙ Configuration</h2>
+                <button class="modal-close" id="modal-close">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="settings-form">
+                    <div class="form-group">
+                        <label class="form-label">GitHub Personal Access Token</label>
+                        <input type="password" class="form-input" id="github-token" placeholder="ghp_xxxxxxxxxxxx">
+                        <p class="form-hint">
+                            Create a token at <a href="https://github.com/settings/tokens" >GitHub Settings → Tokens</a><br>
+                            Required scopes: <code>repo</code>, <code>read:user</code>
+                        </p>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">OAuth Worker URL</label>
+                        <input type="text" class="form-input" id="worker-url" placeholder="https://sysopbeta-oauth.xxx.workers.dev">
+                        <p class="form-hint">
+                            Your Cloudflare Worker URL (see <code>cloudflare-worker/SETUP.md</code>)
+                        </p>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Google Calendar</label>
+                        <button type="button" class="btn btn-primary" id="google-auth-btn" style="width: 100%;">
+                            Connect Google Calendar
+                        </button>
+                        <p class="form-hint" id="google-auth-status">
+                            Not connected
+                        </p>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Profile Picture URL</label>
+                        <input type="text" class="form-input" id="profile-image-url" placeholder="https://github.com/username.png">
+                        <p class="form-hint">
+                            GitHub avatar: <code>https://github.com/USERNAME.png</code>
+                        </p>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Profile Link URL</label>
+                        <input type="text" class="form-input" id="profile-link-url" placeholder="https://github.com/username?tab=repositories">
+                        <p class="form-hint">
+                            Where to navigate when clicking the profile picture
+                        </p>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Save & Reload</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration (stored in localStorage)
+        const CONFIG_KEY = 'terminal-home-config';
+
+        function getConfig() {
+            try {
+                return JSON.parse(localStorage.getItem(CONFIG_KEY)) || {};
+            } catch {
+                return {};
+            }
+        }
+
+        function saveConfig(config) {
+            localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+        }
+
+        // Theme toggle
+        function initTheme() {
+            const config = getConfig();
+            const theme = config.theme || 'dark';
+            document.documentElement.setAttribute('data-theme', theme);
+        }
+
+        function toggleTheme() {
+            const config = getConfig();
+            const currentTheme = config.theme || 'dark';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            config.theme = newTheme;
+            saveConfig(config);
+            document.documentElement.setAttribute('data-theme', newTheme);
+        }
+
+        // Initialize theme immediately
+        initTheme();
+
+        document.getElementById('theme-btn').addEventListener('click', toggleTheme);
+
+        // Clock
+        function updateClock() {
+            const now = new Date();
+            const timeEl = document.getElementById('clock-time');
+            const dateEl = document.getElementById('clock-date');
+
+            timeEl.textContent = now.toLocaleTimeString('en-GB', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+
+            dateEl.textContent = now.toLocaleDateString('en-GB', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        // Search
+        document.addEventListener('keydown', (e) => {
+            if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
+                e.preventDefault();
+                document.querySelector('.search-box').focus();
+            }
+        });
+
+        // Quick Links with drag & drop
+        const DEFAULT_LINKS = [
+            { id: 'github', name: 'GitHub', url: 'https://github.com', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>' },
+            { id: 'calendar', name: 'Calendar', url: 'https://calendar.google.com', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>' },
+            { id: 'gmail', name: 'Gmail', url: 'https://mail.google.com', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>' },
+            { id: 'demorgen', name: 'De Morgen', url: 'https://www.demorgen.be/', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"></path><path d="M18 14h-8"></path><path d="M15 18h-5"></path><path d="M10 6h8v4h-8V6Z"></path></svg>' },
+            { id: 'reddit', name: 'Reddit', url: 'https://reddit.com', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/></svg>' },
+            { id: 'aws', name: 'AWS', url: 'https://eu-west-1.console.aws.amazon.com/ec2/home?region=eu-west-1#Home', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.4c5.302 0 9.6 4.298 9.6 9.6s-4.298 9.6-9.6 9.6S2.4 17.302 2.4 12 6.698 2.4 12 2.4zm-1.2 4.8v9.6l7.2-4.8-7.2-4.8z"/></svg>' },
+            { id: 'isms', name: 'ISMS', url: 'https://github.com/inbo/ISMS', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>' },
+            { id: 'gemini', name: 'Gemini', url: 'https://gemini.google.com', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>' },
+            { id: 'chess', name: 'Chess', url: 'https://www.chess.com/home', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1.1 0 2 .9 2 2 0 .74-.4 1.38-1 1.72V7h1c1.1 0 2 .9 2 2v1h1c1.1 0 2 .9 2 2v7c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2v-7c0-1.1.9-2 2-2h1v-1c0-1.1.9-2 2-2h1V5.72c-.6-.34-1-.98-1-1.72 0-1.1.9-2 2-2z"/></svg>' }
+        ];
+
+        const LINKS_ORDER_KEY = 'quick-links-order';
+
+        function getLinksOrder() {
+            try {
+                const order = JSON.parse(localStorage.getItem(LINKS_ORDER_KEY));
+                if (order && Array.isArray(order)) return order;
+            } catch {}
+            return DEFAULT_LINKS.map(l => l.id);
+        }
+
+        function saveLinksOrder(order) {
+            localStorage.setItem(LINKS_ORDER_KEY, JSON.stringify(order));
+        }
+
+        function renderQuickLinks() {
+            const container = document.getElementById('quick-links');
+            const order = getLinksOrder();
+
+            // Sort links by saved order
+            const sortedLinks = order
+                .map(id => DEFAULT_LINKS.find(l => l.id === id))
+                .filter(Boolean);
+
+            // Add any new links that aren't in the saved order
+            DEFAULT_LINKS.forEach(link => {
+                if (!order.includes(link.id)) sortedLinks.push(link);
+            });
+
+            container.innerHTML = sortedLinks.map(link => `
+                <a href="${link.url}" class="quick-link" draggable="true" data-id="${link.id}">
+                    ${link.icon}
+                    <span>${link.name}</span>
+                </a>
+            `).join('');
+
+            // Add drag & drop listeners
+            initDragAndDrop();
+        }
+
+        let draggedElement = null;
+
+        function initDragAndDrop() {
+            const container = document.getElementById('quick-links');
+            const links = container.querySelectorAll('.quick-link');
+
+            links.forEach(link => {
+                link.addEventListener('dragstart', handleDragStart);
+                link.addEventListener('dragend', handleDragEnd);
+                link.addEventListener('dragover', handleDragOver);
+                link.addEventListener('dragenter', handleDragEnter);
+                link.addEventListener('dragleave', handleDragLeave);
+                link.addEventListener('drop', handleDrop);
+            });
+        }
+
+        function handleDragStart(e) {
+            draggedElement = this;
+            this.classList.add('dragging');
+            document.getElementById('quick-links').classList.add('drag-active');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', this.dataset.id);
+        }
+
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+            document.getElementById('quick-links').classList.remove('drag-active');
+            document.querySelectorAll('.quick-link').forEach(el => el.classList.remove('drag-over'));
+            draggedElement = null;
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        }
+
+        function handleDragEnter(e) {
+            e.preventDefault();
+            if (this !== draggedElement) {
+                this.classList.add('drag-over');
+            }
+        }
+
+        function handleDragLeave(e) {
+            this.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+
+            if (draggedElement && this !== draggedElement) {
+                const container = document.getElementById('quick-links');
+                const allLinks = [...container.querySelectorAll('.quick-link')];
+                const draggedIdx = allLinks.indexOf(draggedElement);
+                const targetIdx = allLinks.indexOf(this);
+
+                if (draggedIdx < targetIdx) {
+                    this.parentNode.insertBefore(draggedElement, this.nextSibling);
+                } else {
+                    this.parentNode.insertBefore(draggedElement, this);
+                }
+
+                // Save new order
+                const newOrder = [...container.querySelectorAll('.quick-link')].map(el => el.dataset.id);
+                saveLinksOrder(newOrder);
+            }
+        }
+
+        // Initialize quick links
+        renderQuickLinks();
+
+        // GitHub API
+        async function fetchGitHubData() {
+            const config = getConfig();
+            const token = config.githubToken;
+
+            if (!token) {
+                showEmptyState('issues-container', '🔑', 'Add GitHub token in settings');
+                showEmptyState('prs-container', '🔑', 'Add GitHub token in settings');
+                document.getElementById('github-status').classList.add('disconnected');
+                return;
+            }
+
+            const headers = {
+                'Authorization': `token ${token}`,
+                'Accept': 'application/vnd.github.v3+json'
+            };
+
+            try {
+                // First get the user
+                const userRes = await fetch('https://api.github.com/user', { headers });
+                if (!userRes.ok) {
+                    throw new Error(`GitHub auth failed: ${userRes.status}`);
+                }
+                const user = await userRes.json();
+                console.log('GitHub user:', user.login);
+
+                // Fetch assigned issues
+                const issuesRes = await fetch('https://api.github.com/issues?filter=assigned&state=open&per_page=10', { headers });
+                const issues = issuesRes.ok ? await issuesRes.json() : [];
+
+                // Fetch created PRs - also include review requested
+                const prsRes = await fetch(`https://api.github.com/search/issues?q=is:pr+is:open+author:${user.login}&per_page=10&sort=updated`, { headers });
+                const prsData = await prsRes.json();
+                console.log('PRs response:', prsData);
+                const prs = prsData.items || [];
+
+                // Also fetch PRs where review is requested
+                const reviewRes = await fetch(`https://api.github.com/search/issues?q=is:pr+is:open+review-requested:${user.login}&per_page=5`, { headers });
+                const reviewData = await reviewRes.json();
+                const reviewPrs = reviewData.items || [];
+
+                renderIssues(issues);
+                renderPRs(prs, reviewPrs);
+
+                document.getElementById('github-status').classList.add('connected');
+                document.getElementById('issues-count').textContent = issues.length;
+                document.getElementById('prs-count').textContent = prs.length + (reviewPrs.length > 0 ? `+${reviewPrs.length}` : '');
+            } catch (err) {
+                console.error('GitHub fetch error:', err);
+                showEmptyState('issues-container', '⚠️', err.message || 'Failed to fetch');
+                showEmptyState('prs-container', '⚠️', err.message || 'Failed to fetch');
+                document.getElementById('github-status').classList.add('disconnected');
+            }
+        }
+
+        function renderIssues(issues) {
+            const container = document.getElementById('issues-container');
+
+            if (!issues.length) {
+                showEmptyState('issues-container', '✨', 'No assigned issues');
+                return;
+            }
+
+            container.innerHTML = issues.map(issue => `
+                <a href="${issue.html_url}"  class="github-item">
+                    <svg class="item-icon issue" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"></path>
+                        <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Z"></path>
+                    </svg>
+                    <div class="item-content">
+                        <div class="item-title">${escapeHtml(issue.title)}</div>
+                        <div class="item-meta">
+                            <span class="item-repo">${issue.repository?.full_name || ''}</span>
+                            <span>#${issue.number}</span>
+                            <span>${timeAgo(issue.updated_at)}</span>
+                        </div>
+                        ${issue.labels?.length ? `
+                            <div class="item-labels">
+                                ${issue.labels.slice(0, 3).map(label => `
+                                    <span class="label" style="background: #${label.color}20; color: #${label.color}; border: 1px solid #${label.color}40;">
+                                        ${escapeHtml(label.name)}
+                                    </span>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                </a>
+            `).join('');
+        }
+
+        function renderPRs(prs, reviewPrs = []) {
+            const container = document.getElementById('prs-container');
+
+            // Combine and dedupe
+            const allPrs = [...prs];
+            const prIds = new Set(prs.map(p => p.id));
+            reviewPrs.forEach(pr => {
+                if (!prIds.has(pr.id)) {
+                    pr._isReview = true;
+                    allPrs.push(pr);
+                }
+            });
+
+            if (!allPrs.length) {
+                showEmptyState('prs-container', '🎉', 'No open pull requests');
+                return;
+            }
+
+            container.innerHTML = allPrs.map(pr => `
+                <a href="${pr.html_url}"  class="github-item">
+                    <svg class="item-icon pr" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354ZM3.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm0 9.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm8.25.75a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Z"></path>
+                    </svg>
+                    <div class="item-content">
+                        <div class="item-title">${escapeHtml(pr.title)}</div>
+                        <div class="item-meta">
+                            <span class="item-repo">${pr.repository_url?.split('/').slice(-2).join('/') || ''}</span>
+                            <span>#${pr.number}</span>
+                            <span>${timeAgo(pr.updated_at)}</span>
+                            ${pr._isReview ? '<span style="color: var(--accent-orange);">review</span>' : ''}
+                        </div>
+                    </div>
+                </a>
+            `).join('');
+        }
+
+        // Google Calendar API (via Cloudflare Worker)
+
+        // Fetch fresh token from Worker (auto-refresh!)
+        async function getAccessToken() {
+            const config = getConfig();
+
+            if (!config.workerUrl) {
+                return null;
+            }
+
+            try {
+                const res = await fetch(`${config.workerUrl}/token`);
+                const data = await res.json();
+
+                if (data.error) {
+                    console.log('Token error:', data.error);
+                    if (data.error === 'not_authenticated') {
+                        // Clear local token data
+                        delete config.googleAccessToken;
+                        delete config.googleTokenExpiry;
+                        saveConfig(config);
+                    }
+                    return null;
+                }
+
+                // Update local cache
+                config.googleAccessToken = data.access_token;
+                config.googleTokenExpiry = Date.now() + (data.expires_in * 1000);
+                saveConfig(config);
+
+                return data.access_token;
+            } catch (err) {
+                console.error('Failed to get token from Worker:', err);
+                return null;
+            }
+        }
+
+        // Quick reconnect function (can be called from anywhere)
+        function triggerGoogleReconnect() {
+            const config = getConfig();
+            const workerUrl = config.workerUrl;
+
+            if (!workerUrl) {
+                alert('Please set your OAuth Worker URL in settings first');
+                document.getElementById('settings-btn').click();
+                return;
+            }
+
+            // Open Worker auth endpoint in popup
+            const width = 500;
+            const height = 600;
+            const left = (window.innerWidth - width) / 2;
+            const top = (window.innerHeight - height) / 2;
+
+            window.open(
+                `${workerUrl}/auth`,
+                'google-oauth',
+                `width=${width},height=${height},left=${left},top=${top}`
+            );
+        }
+
+        // Update calendar status indicator
+        function updateCalendarStatus() {
+            const config = getConfig();
+            const statusEl = document.getElementById('calendar-status');
+            const hasWorker = !!config.workerUrl;
+
+            if (!config.googleAccessToken) {
+                statusEl.innerHTML = `
+                    <button class="calendar-reconnect" onclick="triggerGoogleReconnect()">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12a9 9 0 11-9-9c2.52 0 4.93 1 6.74 2.74L21 8V3"></path>
+                        </svg>
+                        Connect
+                    </button>
+                `;
+                return;
+            }
+
+            // If using Worker, show auto-refresh indicator
+            if (hasWorker) {
+                statusEl.innerHTML = `<span style="font-size: 0.7rem; color: var(--accent-green);" title="Auto-refresh via Worker">✓ Auto</span>`;
+                return;
+            }
+
+            // Fallback: show countdown for non-Worker users
+            const now = Date.now();
+            const expiry = config.googleTokenExpiry || 0;
+            const timeLeft = expiry - now;
+
+            // Token expired
+            if (timeLeft <= 0) {
+                statusEl.innerHTML = `
+                    <span class="calendar-expiry-warning">Expired</span>
+                    <button class="calendar-reconnect" onclick="triggerGoogleReconnect()">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12a9 9 0 11-9-9c2.52 0 4.93 1 6.74 2.74L21 8V3"></path>
+                        </svg>
+                        Reconnect
+                    </button>
+                `;
+                return;
+            }
+
+            // Token expiring within 10 minutes - show warning
+            if (timeLeft < 600000) {
+                const minsLeft = Math.ceil(timeLeft / 60000);
+                statusEl.innerHTML = `
+                    <span class="calendar-expiry-warning">${minsLeft}m left</span>
+                    <button class="calendar-reconnect" onclick="triggerGoogleReconnect()">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12a9 9 0 11-9-9c2.52 0 4.93 1 6.74 2.74L21 8V3"></path>
+                        </svg>
+                        Refresh
+                    </button>
+                `;
+                return;
+            }
+
+            // Token valid - show time remaining
+            const minsLeft = Math.floor(timeLeft / 60000);
+            statusEl.innerHTML = `<span style="font-size: 0.7rem; color: var(--text-muted);">${minsLeft}m</span>`;
+        }
+
+        async function fetchNextMeeting() {
+            const config = getConfig();
+
+            updateCalendarStatus();
+
+            // If we have a Worker URL, try to get a fresh token from it
+            if (config.workerUrl) {
+                const token = await getAccessToken();
+                if (token) {
+                    fetchCalendarData();
+                    return;
+                } else {
+                    showEmptyState('calendar-container', '🔑', 'Click "Connect" above to link Google Calendar');
+                    return;
+                }
+            }
+
+            // Fallback: use locally stored token (for users without Worker)
+            const accessToken = config.googleAccessToken;
+
+            if (!accessToken) {
+                showEmptyState('calendar-container', '🔑', 'Set Worker URL in settings to connect');
+                return;
+            }
+
+            // Check if token expired
+            if (config.googleTokenExpiry && Date.now() > config.googleTokenExpiry) {
+                console.log('Token expired, showing reconnect prompt...');
+                showEmptyState('calendar-container', '🔄', 'Session expired - click Reconnect above');
+                return;
+            }
+
+            fetchCalendarData();
+        }
+
+        async function fetchCalendarData() {
+            const config = getConfig();
+            const accessToken = config.googleAccessToken;
+
+            try {
+                const now = new Date().toISOString();
+                const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?` +
+                    `timeMin=${now}&maxResults=20&singleEvents=true&orderBy=startTime`;
+
+                const res = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                });
+
+                if (res.status === 401) {
+                    // Token invalid/expired - update status and show reconnect
+                    console.log('Token invalid (401), showing reconnect...');
+                    const config = getConfig();
+                    config.googleTokenExpiry = 0; // Mark as expired
+                    saveConfig(config);
+                    updateCalendarStatus();
+                    showEmptyState('calendar-container', '🔄', 'Session expired - click Reconnect above');
+                    return;
+                }
+
+                if (!res.ok) {
+                    throw new Error(`Calendar API error: ${res.status}`);
+                }
+
+                const data = await res.json();
+                let events = data.items || [];
+
+                // Filter out work location events
+                const locationKeywords = ['home', 'thuis', 'office', 'kantoor', 'bureau', 'ht bxl', 'vac gent'];
+                events = events.filter(event => {
+                    const title = (event.summary || '').toLowerCase();
+                    return !locationKeywords.some(keyword => title.includes(keyword));
+                });
+
+                // Take first 3 events
+                events = events.slice(0, 3);
+
+                if (events.length === 0) {
+                    showEmptyState('calendar-container', '📅', 'No upcoming meetings');
+                    return;
+                }
+
+                renderMeetings(events);
+            } catch (err) {
+                console.error('Calendar fetch error:', err);
+                showEmptyState('calendar-container', '⚠️', err.message || 'Failed to fetch calendar');
+            }
+        }
+
+        function renderMeetings(events) {
+            const container = document.getElementById('calendar-container');
+            const now = new Date();
+
+            container.innerHTML = events.map(event => {
+                const startDate = event.start.dateTime ? new Date(event.start.dateTime) : new Date(event.start.date);
+                const isAllDay = !event.start.dateTime;
+
+                const isToday = startDate.toDateString() === now.toDateString();
+                const isTomorrow = startDate.toDateString() === new Date(now.getTime() + 86400000).toDateString();
+
+                let dayLabel;
+                if (isToday) dayLabel = 'Today';
+                else if (isTomorrow) dayLabel = 'Tomorrow';
+                else dayLabel = startDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+
+                const timeStr = isAllDay ? 'All day' : startDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                const countdown = getEventCountdown(startDate, isAllDay);
+
+                return `
+                    <a href="${event.htmlLink || 'https://calendar.google.com'}"  class="github-item" style="text-decoration: none;">
+                        <svg class="item-icon" style="color: var(--accent-blue);" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M4.5 1.75v1.5H2.5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1h-2v-1.5a.75.75 0 0 0-1.5 0v1.5h-4v-1.5a.75.75 0 0 0-1.5 0ZM2.5 6h11v7.25H2.5V6Z"/>
+                        </svg>
+                        <div class="item-content">
+                            <div class="item-title">${escapeHtml(event.summary || 'No title')}</div>
+                            <div class="item-meta">
+                                <span style="color: var(--text-secondary);">${timeStr}</span>
+                                <span>${dayLabel}</span>
+                                <span style="color: var(--accent-orange);">${countdown}</span>
+                            </div>
+                        </div>
+                    </a>
+                `;
+            }).join('');
+        }
+
+        function getEventCountdown(date, isAllDay) {
+            const now = new Date();
+            let diff = date - now;
+
+            if (isAllDay) {
+                // For all-day events, compare dates only
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const eventDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                diff = eventDay - today;
+            }
+
+            if (diff < 0) return 'Now';
+
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+            if (isAllDay) {
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                if (days === 0) return 'Today';
+                if (days === 1) return 'Tomorrow';
+                return `in ${days} days`;
+            }
+
+            if (hours < 1) return `in ${minutes}m`;
+            if (hours < 24) return `in ${hours}h ${minutes}m`;
+
+            const days = Math.floor(hours / 24);
+            return `in ${days}d`;
+        }
+
+        // Utility functions
+        function showEmptyState(containerId, icon, text) {
+            document.getElementById(containerId).innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">${icon}</div>
+                    <div class="empty-text">${text}</div>
+                </div>
+            `;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function timeAgo(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const seconds = Math.floor((now - date) / 1000);
+
+            const intervals = [
+                { label: 'y', seconds: 31536000 },
+                { label: 'mo', seconds: 2592000 },
+                { label: 'd', seconds: 86400 },
+                { label: 'h', seconds: 3600 },
+                { label: 'm', seconds: 60 }
+            ];
+
+            for (const interval of intervals) {
+                const count = Math.floor(seconds / interval.seconds);
+                if (count >= 1) return `${count}${interval.label} ago`;
+            }
+
+            return 'just now';
+        }
+
+        // Modal
+        const modal = document.getElementById('modal');
+        const settingsBtn = document.getElementById('settings-btn');
+        const modalClose = document.getElementById('modal-close');
+        const settingsForm = document.getElementById('settings-form');
+
+        settingsBtn.addEventListener('click', () => {
+            const config = getConfig();
+            document.getElementById('github-token').value = config.githubToken || '';
+            document.getElementById('worker-url').value = config.workerUrl || '';
+            document.getElementById('profile-image-url').value = config.profileImageUrl || '';
+            document.getElementById('profile-link-url').value = config.profileLinkUrl || 'https://github.com/berthuygens?tab=repositories';
+            updateGoogleAuthStatus();
+            modal.classList.add('active');
+        });
+
+        modalClose.addEventListener('click', () => modal.classList.remove('active'));
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.classList.remove('active');
+        });
+
+        settingsForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const config = getConfig();
+            config.githubToken = document.getElementById('github-token').value;
+            config.workerUrl = document.getElementById('worker-url').value;
+            config.profileImageUrl = document.getElementById('profile-image-url').value;
+            config.profileLinkUrl = document.getElementById('profile-link-url').value || 'https://github.com/berthuygens?tab=repositories';
+            console.log('Saving config:', config);
+            saveConfig(config);
+            console.log('Config saved, verifying:', getConfig());
+            modal.classList.remove('active');
+            init();
+        });
+
+        // Google OAuth
+        // Check Worker authentication status
+        async function updateGoogleAuthStatus() {
+            const config = getConfig();
+            const statusEl = document.getElementById('google-auth-status');
+            const btnEl = document.getElementById('google-auth-btn');
+
+            if (!config.workerUrl) {
+                statusEl.textContent = 'Set Worker URL first';
+                statusEl.style.color = 'var(--accent-orange)';
+                btnEl.textContent = 'Connect Google Calendar';
+                return;
+            }
+
+            try {
+                const res = await fetch(`${config.workerUrl}/status`);
+                const data = await res.json();
+
+                if (data.authenticated) {
+                    statusEl.textContent = 'Connected via Worker (auto-refresh enabled!)';
+                    statusEl.style.color = 'var(--accent-green)';
+                    btnEl.textContent = 'Reconnect Google Calendar';
+                } else {
+                    statusEl.textContent = 'Not connected';
+                    statusEl.style.color = '';
+                    btnEl.textContent = 'Connect Google Calendar';
+                }
+            } catch (err) {
+                statusEl.textContent = 'Worker not reachable';
+                statusEl.style.color = 'var(--accent-red)';
+            }
+        }
+
+        // Listen for OAuth success message from popup
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'oauth-success') {
+                console.log('OAuth success received from Worker!');
+                const config = getConfig();
+                config.googleAccessToken = event.data.accessToken;
+                config.googleTokenExpiry = Date.now() + (event.data.expiresIn * 1000);
+                saveConfig(config);
+                updateGoogleAuthStatus();
+                updateCalendarStatus();
+                fetchCalendarData();
+            }
+        });
+
+        document.getElementById('google-auth-btn').addEventListener('click', () => {
+            const config = getConfig();
+            const workerUrl = document.getElementById('worker-url').value || config.workerUrl;
+
+            if (!workerUrl) {
+                alert('Please enter your OAuth Worker URL first');
+                return;
+            }
+
+            // Save worker URL first
+            config.workerUrl = workerUrl;
+            saveConfig(config);
+
+            // Open Worker auth endpoint in popup
+            const width = 500;
+            const height = 600;
+            const left = (window.innerWidth - width) / 2;
+            const top = (window.innerHeight - height) / 2;
+
+            window.open(
+                `${workerUrl}/auth`,
+                'google-oauth',
+                `width=${width},height=${height},left=${left},top=${top}`
+            );
+        });
+
+        // Update last updated
+        function updateLastUpdated() {
+            const el = document.getElementById('last-updated');
+            el.textContent = `Updated: ${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
+        }
+
+        // Random quotes
+        const quotes = [
+            "Talk is cheap. Show me the code. — Linus Torvalds",
+            "First, solve the problem. Then, write the code. — John Johnson",
+            "Make it work, make it right, make it fast. — Kent Beck",
+            "Simplicity is the soul of efficiency. — Austin Freeman",
+            "Any fool can write code that a computer can understand. Good programmers write code that humans can understand. — Martin Fowler",
+            "Code is like humor. When you have to explain it, it's bad. — Cory House",
+            "Clean code always looks like it was written by someone who cares. — Robert C. Martin",
+            "Programming isn't about what you know; it's about what you can figure out. — Chris Pine",
+            "The best error message is the one that never shows up. — Thomas Fuchs",
+            "It works on my machine. — Every developer ever",
+            "There are only two hard things in CS: cache invalidation and naming things. — Phil Karlton",
+            "The most dangerous phrase is: We've always done it this way. — Grace Hopper",
+            "Weeks of coding can save you hours of planning. — Unknown",
+            "A user interface is like a joke. If you have to explain it, it's not that good. — Martin LeBlanc",
+            "The only way to go fast is to go well. — Robert C. Martin",
+            "Perfection is achieved not when there is nothing more to add, but when there is nothing left to take away. — Antoine de Saint-Exupéry",
+            "Java is to JavaScript what car is to carpet. — Chris Heilmann",
+            "Always code as if the guy who ends up maintaining your code will be a violent psychopath who knows where you live. — John Woods",
+            "Documentation is a love letter that you write to your future self. — Damian Conway",
+            "Software is like entropy: it is difficult to grasp, weighs nothing, and obeys the Second Law of Thermodynamics; i.e., it always increases. — Norman Augustine",
+            "Before software can be reusable it first has to be usable. — Ralph Johnson",
+            "The best thing about a boolean is even if you are wrong, you are only off by a bit. — Anonymous",
+            "If debugging is the process of removing bugs, then programming must be the process of putting them in. — Edsger W. Dijkstra",
+            "Measuring programming progress by lines of code is like measuring aircraft building progress by weight. — Bill Gates",
+            "The computer was born to solve problems that did not exist before. — Bill Gates",
+            "Walking on water and developing software from a specification are easy if both are frozen. — Edward V. Berard",
+            "Computers are good at following instructions, but not at reading your mind. — Donald Knuth",
+            "One of my most productive days was throwing away 1000 lines of code. — Ken Thompson",
+            "Deleted code is debugged code. — Jeff Sickel",
+            "If you think good architecture is expensive, try bad architecture. — Brian Foote",
+            "There is no programming language that will prevent programmers from making bad programs. — Larry Flon",
+            "Copy and paste is a design error. — David Parnas",
+            "The function of good software is to make the complex appear simple. — Grady Booch",
+            "Don't comment bad code — rewrite it. — Brian Kernighan",
+            "Experience is the name everyone gives to their mistakes. — Oscar Wilde",
+            "Programming is the art of telling another human being what one wants the computer to do. — Donald Knuth",
+            "Optimism is an occupational hazard of programming: feedback is the treatment. — Kent Beck",
+            "Without requirements or design, programming is the art of adding bugs to an empty text file. — Louis Srygley",
+            "The sooner you start to code, the longer the program will take. — Roy Carlson",
+            "When debugging, novices insert corrective code; experts remove defective code. — Richard Pattis"
+        ];
+
+        function showRandomQuote() {
+            const el = document.getElementById('random-quote');
+            const randomIndex = Math.floor(Math.random() * quotes.length);
+            el.textContent = `"${quotes[randomIndex]}"`;
+        }
+
+        // Show quote on page load
+        showRandomQuote();
+
+        // Initialize
+        // Profile picture
+        function updateProfilePicture() {
+            const config = getConfig();
+            const profileLink = document.getElementById('profile-link');
+            const profilePic = document.getElementById('profile-pic');
+            const profilePlaceholder = document.getElementById('profile-placeholder');
+
+            // Update link URL
+            profileLink.href = config.profileLinkUrl || 'https://github.com/berthuygens?tab=repositories';
+
+            // Update image
+            if (config.profileImageUrl) {
+                profilePic.src = config.profileImageUrl;
+                profilePic.style.display = 'block';
+                profilePlaceholder.style.display = 'none';
+
+                // Handle image load error
+                profilePic.onerror = () => {
+                    profilePic.style.display = 'none';
+                    profilePlaceholder.style.display = 'flex';
+                };
+            } else {
+                profilePic.style.display = 'none';
+                profilePlaceholder.style.display = 'flex';
+            }
+        }
+
+        function init() {
+            document.getElementById('github-status').className = 'status-dot';
+
+            updateProfilePicture();
+            fetchGitHubData();
+            fetchNextMeeting();
+            updateLastUpdated();
+        }
+
+        init();
+
+        // Auto-refresh every 5 minutes
+        setInterval(init, 5 * 60 * 1000);
+
+        // Update calendar status every minute (for countdown)
+        setInterval(updateCalendarStatus, 60 * 1000);
+    </script>
+</body>
+</html>
