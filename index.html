@@ -318,6 +318,83 @@
             text-decoration: underline;
         }
 
+        /* Repo Search */
+        .repo-search-section {
+            margin-bottom: 2rem;
+        }
+
+        .repo-search-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .repo-search-input-wrapper {
+            position: relative;
+        }
+
+        .repo-search-input-wrapper svg {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        .repo-search-input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.75rem;
+            font-family: inherit;
+            font-size: 0.875rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .repo-search-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px var(--glow-blue);
+        }
+
+        .repo-search-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .repo-search-results {
+            margin-top: 0.5rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .repo-search-results.has-results {
+            display: block;
+        }
+
+        .repo-search-results .github-item {
+            margin: 0;
+            border-radius: 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .repo-search-results .github-item:last-child {
+            border-bottom: none;
+        }
+
+        .repo-owner {
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .repo-stars {
+            color: var(--accent-orange);
+        }
+
         /* Dashboard Grid */
         .dashboard {
             display: grid;
@@ -1006,6 +1083,21 @@
             </div>
         </section>
 
+        <!-- Repo Search -->
+        <section class="repo-search-section">
+            <div class="repo-search-container">
+                <div class="repo-search-input-wrapper">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    <input type="text" class="repo-search-input" id="repo-search-input"
+                           placeholder="Search repos in berthuygens & inbo...">
+                </div>
+                <div class="repo-search-results" id="repo-search-results"></div>
+            </div>
+        </section>
+
         <!-- Dashboard -->
         <section class="dashboard">
             <!-- Assigned Issues -->
@@ -1586,6 +1678,79 @@
                 showEmptyState('prs-container', '⚠️', err.message || 'Failed to fetch');
                 document.getElementById('github-status').classList.add('disconnected');
             }
+        }
+
+        // Repo Search
+        let searchTimeout = null;
+        const repoSearchInput = document.getElementById('repo-search-input');
+        const repoSearchResults = document.getElementById('repo-search-results');
+
+        repoSearchInput.addEventListener('input', function() {
+            const query = this.value.trim();
+
+            clearTimeout(searchTimeout);
+
+            if (query.length < 2) {
+                repoSearchResults.classList.remove('has-results');
+                repoSearchResults.innerHTML = '';
+                return;
+            }
+
+            searchTimeout = setTimeout(() => searchRepos(query), 300);
+        });
+
+        async function searchRepos(query) {
+            const config = getConfig();
+            const token = config.githubToken;
+
+            if (!token) {
+                repoSearchResults.classList.add('has-results');
+                repoSearchResults.innerHTML = '<div class="empty-state"><div class="empty-icon">🔑</div><div class="empty-text">Add GitHub token in settings</div></div>';
+                return;
+            }
+
+            const headers = {
+                'Authorization': `token ${token}`,
+                'Accept': 'application/vnd.github.v3+json'
+            };
+
+            try {
+                const searchQuery = encodeURIComponent(`${query} in:name,description user:berthuygens org:inbo`);
+                const res = await fetch(`https://api.github.com/search/repositories?q=${searchQuery}&per_page=10&sort=updated`, { headers });
+
+                if (!res.ok) throw new Error('Search failed');
+
+                const data = await res.json();
+                renderRepoResults(data.items || []);
+            } catch (err) {
+                console.error('Repo search error:', err);
+                repoSearchResults.classList.add('has-results');
+                repoSearchResults.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">Search failed</div></div>';
+            }
+        }
+
+        function renderRepoResults(repos) {
+            if (!repos.length) {
+                repoSearchResults.classList.add('has-results');
+                repoSearchResults.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">No repos found</div></div>';
+                return;
+            }
+
+            repoSearchResults.classList.add('has-results');
+            repoSearchResults.innerHTML = repos.map(repo => `
+                <a href="${repo.html_url}" class="github-item" target="_blank">
+                    <svg class="item-icon" style="color: var(--accent-blue)" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.45-1.087a.249.249 0 0 0-.3 0L5.4 15.7a.25.25 0 0 1-.4-.2Z"></path>
+                    </svg>
+                    <div class="item-content">
+                        <div class="item-title"><span class="repo-owner">${escapeHtml(repo.owner.login)}/</span>${escapeHtml(repo.name)}</div>
+                        <div class="item-meta">
+                            ${repo.description ? `<span>${escapeHtml(repo.description.substring(0, 60))}${repo.description.length > 60 ? '...' : ''}</span>` : ''}
+                            ${repo.stargazers_count > 0 ? `<span class="repo-stars">★ ${repo.stargazers_count}</span>` : ''}
+                        </div>
+                    </div>
+                </a>
+            `).join('');
         }
 
         function renderIssues(issues) {
