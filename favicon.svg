@@ -1,4 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" fill="#000"/>
-  <text x="16" y="22" font-family="monospace" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle">>_</text>
+  <defs>
+    <pattern id="stripes" patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="4" stroke="#ffffff" stroke-width="2"/>
+    </pattern>
+  </defs>
+  <!-- Gray D letter -->
+  <text x="16" y="26" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="700" text-anchor="middle" fill="#656d76">D</text>
+  <!-- White diagonal stripes overlaid -->
+  <text x="16" y="26" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="700" text-anchor="middle" fill="url(#stripes)">D</text>
 </svg>
