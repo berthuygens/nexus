@@ -5,7 +5,7 @@
     </pattern>
   </defs>
   <!-- Gray D letter -->
-  <text x="16" y="26" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="700" text-anchor="middle" fill="#656d76">D</text>
+  <text x="16" y="28" font-family="system-ui, -apple-system, sans-serif" font-size="36" font-weight="900" text-anchor="middle" fill="#656d76">D</text>
   <!-- White diagonal stripes overlaid -->
-  <text x="16" y="26" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="700" text-anchor="middle" fill="url(#stripes)">D</text>
+  <text x="16" y="28" font-family="system-ui, -apple-system, sans-serif" font-size="36" font-weight="900" text-anchor="middle" fill="url(#stripes)">D</text>
 </svg>
