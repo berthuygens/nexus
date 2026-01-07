@@ -92,89 +92,171 @@
             padding: 24px;
         }
 
-        /* Header - Clean and minimal */
+        /* Console Terminal Header */
         .ascii-header {
-            text-align: center;
             margin-bottom: 24px;
-            padding: 12px 24px;
-            background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius-lg);
+            background: var(--console-bg, #0a0e14);
+            border: 1px solid var(--console-border, #1a1f2e);
+            border-radius: 8px;
             position: relative;
             overflow: hidden;
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
         }
 
+        /* CRT scanline effect */
         .ascii-header::before {
             content: '';
             position: absolute;
             top: 0;
             left: 0;
             right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--border-color), var(--text-muted), var(--border-color));
+            bottom: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 0, 0, 0.1) 2px,
+                rgba(0, 0, 0, 0.1) 4px
+            );
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* Terminal title bar */
+        .console-titlebar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: var(--console-titlebar, #151a24);
+            border-bottom: 1px solid var(--console-border, #1a1f2e);
+        }
+
+        .console-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .console-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            opacity: 0.8;
+        }
+
+        .console-dot.red { background: #ff5f57; }
+        .console-dot.yellow { background: #febc2e; }
+        .console-dot.green { background: #28c840; }
+
+        .console-title {
+            font-size: 11px;
+            color: var(--console-muted, #4a5568);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .console-datetime {
+            font-size: 11px;
+            color: var(--console-accent, #64ffda);
+            letter-spacing: 0.5px;
+        }
+
+        /* Main console body */
+        .console-body {
+            padding: 16px 20px;
+            position: relative;
         }
 
         .ascii-art {
-            font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
-            font-size: 0.85rem;
-            line-height: 1.2;
-            color: var(--text-primary);
+            font-size: 0.75rem;
+            line-height: 1.15;
+            color: var(--console-text, #e2e8f0);
             white-space: pre;
-            display: inline-block;
-            font-weight: 500;
-            opacity: 0.9;
+            display: block;
+            text-align: center;
+            text-shadow: 0 0 10px var(--console-glow, rgba(100, 255, 218, 0.3));
+            letter-spacing: -0.5px;
         }
 
-        .terminal-prompt {
+        /* Console output line */
+        .console-output {
             display: flex;
             align-items: center;
-            justify-content: center;
             gap: 8px;
-            margin-top: 16px;
-            font-size: 13px;
-            color: var(--text-secondary);
-            font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+            padding: 10px 12px;
+            background: var(--console-output-bg, rgba(0, 0, 0, 0.3));
+            border-top: 1px solid var(--console-border, #1a1f2e);
+            font-size: 12px;
         }
 
-        .prompt-symbol {
-            color: var(--accent-green);
-            font-weight: 600;
+        .console-prompt {
+            color: var(--console-accent, #64ffda);
+            flex-shrink: 0;
         }
 
-        .prompt-path {
-            color: var(--accent-blue);
-            font-weight: 500;
+        .console-path {
+            color: var(--console-blue, #82aaff);
+            flex-shrink: 0;
+        }
+
+        .console-separator {
+            color: var(--console-muted, #4a5568);
         }
 
         .ccb-news-ticker {
-            color: var(--text-secondary);
+            color: var(--console-dim, #8892b0);
             text-decoration: none;
-            max-width: calc(100vw - 200px);
+            flex: 1;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
             transition: color 0.2s ease;
-            display: inline-block;
         }
 
         .ccb-news-ticker:hover {
-            color: var(--accent-blue);
+            color: var(--console-text, #e2e8f0);
         }
 
         .cursor {
             display: inline-block;
-            width: 8px;
-            height: 1.1em;
-            background: var(--accent-green);
+            width: 7px;
+            height: 14px;
+            background: var(--console-accent, #64ffda);
             animation: blink 1s step-end infinite;
-            vertical-align: middle;
-            margin-left: 4px;
-            border-radius: 1px;
+            flex-shrink: 0;
+            opacity: 0.9;
         }
 
         @keyframes blink {
-            0%, 50% { opacity: 1; }
+            0%, 50% { opacity: 0.9; }
             51%, 100% { opacity: 0; }
+        }
+
+        /* Theme variables */
+        :root {
+            --console-bg: #0d1117;
+            --console-titlebar: #161b22;
+            --console-border: #30363d;
+            --console-text: #e6edf3;
+            --console-muted: #6e7681;
+            --console-dim: #8b949e;
+            --console-accent: #7ee787;
+            --console-blue: #58a6ff;
+            --console-glow: rgba(126, 231, 135, 0.2);
+            --console-output-bg: rgba(0, 0, 0, 0.2);
+        }
+
+        [data-theme="dark"] {
+            --console-bg: #0d1117;
+            --console-titlebar: #161b22;
+            --console-border: #30363d;
+            --console-text: #e6edf3;
+            --console-muted: #6e7681;
+            --console-dim: #8b949e;
+            --console-accent: #7ee787;
+            --console-blue: #58a6ff;
+            --console-glow: rgba(126, 231, 135, 0.25);
+            --console-output-bg: rgba(0, 0, 0, 0.3);
         }
 
         /* Fun Reddit Post Box */
@@ -1110,7 +1192,25 @@
             }
 
             .ascii-art {
-                font-size: 0.35rem;
+                font-size: 0.38rem;
+                line-height: 1.1;
+            }
+
+            .console-titlebar {
+                padding: 6px 10px;
+            }
+
+            .console-title {
+                display: none;
+            }
+
+            .console-body {
+                padding: 12px 10px;
+            }
+
+            .console-output {
+                padding: 8px 10px;
+                font-size: 11px;
             }
 
             .dashboard {
@@ -1135,23 +1235,6 @@
                 right: 16px;
             }
         }
-
-        /* Clock */
-        .clock {
-            text-align: center;
-            margin-bottom: 8px;
-        }
-
-        .clock-time {
-            font-size: 13px;
-            color: var(--text-muted);
-        }
-
-        .clock-date {
-            font-size: 13px;
-            color: var(--text-muted);
-            margin-top: 2px;
-        }
     </style>
 </head>
 <body>
@@ -1167,29 +1250,30 @@
     </a>
 
     <div class="container">
-        <!-- ASCII Art Header -->
+        <!-- Console Terminal Header -->
         <header class="ascii-header">
-            <pre class="ascii-art">
-▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
- █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░█
- █░                                                                ░█
- █░   ██████╗ ██████╗       ██╗    ██╗████████╗███████╗            ░█
- █░   ██╔══██╗╚════██╗      ██║    ██║╚══██╔══╝██╔════╝            ░█
- █░   ██████╔╝ █████╔╝      ██║ █╗ ██║   ██║   █████╗              ░█
- █░   ██╔══██╗ ╚═══██╗.░▓▒  ██║███╗██║   ██║   ██╔══╝              ░█
- █░   ██████╔╝██████╔╝ ░▓▒  ╚███╔███╔╝   ██║   ██║                 ░█
- █░   ╚═════╝ ╚═════╝        ╚══╝╚══╝    ╚═╝   ╚═╝                 ░█
- █░                                          >> CONNECTING...      ░█
- █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░█
- ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
-            </pre>
-            <div class="clock">
-                <div class="clock-time" id="clock-time">--:--</div>
-                <div class="clock-date" id="clock-date"></div>
+            <div class="console-titlebar">
+                <div class="console-dots">
+                    <span class="console-dot red"></span>
+                    <span class="console-dot yellow"></span>
+                    <span class="console-dot green"></span>
+                </div>
+                <span class="console-title">b3.wtf — terminal</span>
+                <span class="console-datetime" id="console-datetime">--:-- · ---</span>
             </div>
-            <div class="terminal-prompt">
-                <span class="prompt-symbol">❯</span>
-                <span class="prompt-path">~/b3.wtf</span>
+            <div class="console-body">
+                <pre class="ascii-art">
+   ██████╗ ██████╗       ██╗    ██╗████████╗███████╗
+   ██╔══██╗╚════██╗      ██║    ██║╚══██╔══╝██╔════╝
+   ██████╔╝ █████╔╝      ██║ █╗ ██║   ██║   █████╗
+   ██╔══██╗ ╚═══██╗ ░▓▒  ██║███╗██║   ██║   ██╔══╝
+   ██████╔╝██████╔╝ ░▓▒  ╚███╔███╔╝   ██║   ██║
+   ╚═════╝ ╚═════╝        ╚══╝╚══╝    ╚═╝   ╚═╝     </pre>
+            </div>
+            <div class="console-output">
+                <span class="console-prompt">❯</span>
+                <span class="console-path">~/feed</span>
+                <span class="console-separator">—</span>
                 <a href="#" id="ccb-news-ticker" class="ccb-news-ticker" target="_blank" rel="noopener">loading...</a>
                 <span class="cursor"></span>
             </div>
@@ -1447,24 +1531,23 @@
 
         document.getElementById('theme-btn').addEventListener('click', toggleTheme);
 
-        // Clock
+        // Console DateTime
         function updateClock() {
             const now = new Date();
-            const timeEl = document.getElementById('clock-time');
-            const dateEl = document.getElementById('clock-date');
+            const el = document.getElementById('console-datetime');
 
-            timeEl.textContent = now.toLocaleTimeString('en-GB', {
+            const time = now.toLocaleTimeString('en-GB', {
                 hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
+                minute: '2-digit'
             });
 
-            dateEl.textContent = now.toLocaleDateString('en-GB', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
+            const date = now.toLocaleDateString('en-GB', {
+                weekday: 'short',
+                day: 'numeric',
+                month: 'short'
             });
+
+            el.textContent = `${time} · ${date}`;
         }
 
         updateClock();
