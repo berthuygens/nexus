@@ -127,14 +127,13 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 56px;
             background: rgba(9, 9, 11, 0.8);
             backdrop-filter: blur(12px);
             border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 var(--space-6);
+            padding: var(--space-3) var(--space-6);
             z-index: 100;
         }
 
@@ -143,19 +142,19 @@
         }
 
         .nav-brand {
-            font-size: 18px;
-            font-weight: 700;
-            color: #6b6b6b;
-            text-decoration: none;
-            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
         }
 
-        .nav-brand span {
+        .nav-ascii {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            line-height: 1.4;
             color: #6b6b6b;
+            margin: 0;
         }
 
-        [data-theme="light"] .nav-brand,
-        [data-theme="light"] .nav-brand span {
+        [data-theme="light"] .nav-ascii {
             color: #5a5a5a;
         }
 
@@ -229,7 +228,7 @@
 
         /* ========== Main Container ========== */
         .main {
-            padding-top: 56px;
+            padding-top: 72px;
             min-height: 100vh;
         }
 
@@ -239,74 +238,7 @@
             padding: var(--space-8) var(--space-6);
         }
 
-        /* ========== Hero Section with Animated Glow ========== */
-        .hero {
-            text-align: center;
-            padding: var(--space-4) 0 var(--space-3);
-            position: relative;
-        }
-
-        .hero-glow {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 180px;
-            height: 80px;
-            background: #888888;
-            filter: blur(50px);
-            opacity: 0.12;
-            animation: glow-pulse 5s ease-in-out infinite;
-            pointer-events: none;
-        }
-
-        @keyframes glow-pulse {
-            0%, 100% {
-                opacity: 0.08;
-                transform: translate(-50%, -50%) scale(1);
-            }
-            50% {
-                opacity: 0.15;
-                transform: translate(-50%, -50%) scale(1.05);
-            }
-        }
-
-        .hero-content {
-            position: relative;
-            z-index: 1;
-        }
-
-        .hero-brand {
-            font-size: 48px;
-            font-weight: 700;
-            letter-spacing: -0.03em;
-            margin-bottom: var(--space-3);
-            color: #6b6b6b;
-        }
-
-        [data-theme="light"] .hero-brand {
-            color: #5a5a5a;
-        }
-
-        .hero-datetime {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: var(--space-2);
-            font-size: 14px;
-            color: var(--text-muted);
-        }
-
-        .hero-time {
-            font-weight: 500;
-            color: var(--text-secondary);
-        }
-
-        .hero-separator {
-            opacity: 0.4;
-        }
-
-        /* ========== Search ========== */
+                /* ========== Search ========== */
         .search-section {
             max-width: 600px;
             margin: 0 auto var(--space-4);
@@ -1048,12 +980,8 @@
                 padding: var(--space-4);
             }
 
-            .hero {
-                padding: var(--space-3) 0 var(--space-2);
-            }
-
-            .hero-datetime {
-                font-size: 12px;
+            .nav-ascii {
+                font-size: 10px;
             }
 
             .fun-widget {
@@ -1083,7 +1011,11 @@
 <body>
     <!-- Navigation Bar -->
     <nav class="nav">
-        <a href="#" class="nav-brand">B3<span>.wtf</span></a>
+        <div class="nav-brand">
+            <pre class="nav-ascii">B3.wtf
+&gt; automate.terminals();
+<span id="hero-time">--:--</span> · <span id="hero-date">Loading...</span></pre>
+        </div>
         <div class="nav-controls">
             <a href="https://github.com/berthuygens?tab=repositories" class="profile-btn" id="profile-link" title="Profile">
                 <div class="placeholder" id="profile-placeholder">
@@ -1121,18 +1053,6 @@
 
     <main class="main">
         <div class="container">
-            <!-- Hero Section -->
-            <header class="hero">
-                <div class="hero-glow"></div>
-                <div class="hero-content">
-                    <div class="hero-datetime">
-                        <span class="hero-time" id="hero-time">--:--</span>
-                        <span class="hero-separator">·</span>
-                        <span id="hero-date">Loading...</span>
-                    </div>
-                </div>
-            </header>
-
             <!-- Search -->
             <section class="search-section">
                 <div class="search-wrapper">
