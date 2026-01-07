@@ -446,8 +446,13 @@
             border-bottom: none;
         }
 
-        .list-item:hover {
+        .list-item:hover,
+        .list-item.selected {
             background: var(--bg-elevated);
+        }
+
+        .list-item.selected .list-item-title {
+            text-decoration: underline;
         }
 
         .list-item-icon {
@@ -1642,9 +1647,12 @@
         const repoSearchInput = document.getElementById('repo-search-input');
         const repoSearchResults = document.getElementById('repo-search-results');
 
+        let selectedResultIndex = -1;
+
         repoSearchInput.addEventListener('input', function() {
             const query = this.value.trim();
             clearTimeout(searchTimeout);
+            selectedResultIndex = -1;
 
             if (query.length < 2) {
                 repoSearchResults.classList.remove('has-results');
@@ -1654,6 +1662,37 @@
 
             searchTimeout = setTimeout(() => searchRepos(query), 300);
         });
+
+        repoSearchInput.addEventListener('keydown', function(e) {
+            const items = repoSearchResults.querySelectorAll('a.list-item');
+            if (!items.length) return;
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                selectedResultIndex = Math.min(selectedResultIndex + 1, items.length - 1);
+                updateSelectedResult(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                selectedResultIndex = Math.max(selectedResultIndex - 1, 0);
+                updateSelectedResult(items);
+            } else if (e.key === 'Enter' && selectedResultIndex >= 0) {
+                e.preventDefault();
+                items[selectedResultIndex].click();
+            } else if (e.key === 'Escape') {
+                repoSearchResults.classList.remove('has-results');
+                repoSearchResults.innerHTML = '';
+                selectedResultIndex = -1;
+            }
+        });
+
+        function updateSelectedResult(items) {
+            items.forEach((item, i) => {
+                item.classList.toggle('selected', i === selectedResultIndex);
+            });
+            if (selectedResultIndex >= 0 && items[selectedResultIndex]) {
+                items[selectedResultIndex].scrollIntoView({ block: 'nearest' });
+            }
+        }
 
         function getRepoSearchLocations() {
             const config = getConfig();
