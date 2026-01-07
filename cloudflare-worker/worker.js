@@ -35,6 +35,7 @@ export default {
 
     // Restrict CORS to your domain in production
     const allowedOrigins = [
+      'https://b3.wtf',
       'https://berthuygens.github.io',
       'http://localhost:8080',
       'http://127.0.0.1:8080'
