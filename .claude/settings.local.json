@@ -52,7 +52,8 @@
       "Bash(source ~/.zshrc)",
       "Bash(git -C /Users/sysopbeta/code/work/daemon status)",
       "Bash(git -C /Users/sysopbeta/code/work/daemon add:*)",
-      "Bash(git -C /Users/sysopbeta/code/work/daemon diff --cached)"
+      "Bash(git -C /Users/sysopbeta/code/work/daemon diff --cached)",
+      "Bash(git -C /Users/sysopbeta/code/macsetup status)"
     ]
   }
 }
