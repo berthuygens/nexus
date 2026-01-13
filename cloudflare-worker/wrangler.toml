@@ -10,3 +10,5 @@ id = "414bf6e638644188b308eada7de62a67"
 # Environment variables (secrets - set via wrangler secret put)
 # GOOGLE_CLIENT_ID - set via: wrangler secret put GOOGLE_CLIENT_ID
 # GOOGLE_CLIENT_SECRET - set via: wrangler secret put GOOGLE_CLIENT_SECRET
+# OTRS_USERNAME - set via: wrangler secret put OTRS_USERNAME
+# OTRS_PASSWORD - set via: wrangler secret put OTRS_PASSWORD

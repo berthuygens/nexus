@@ -1120,6 +1120,7 @@
                         <div class="card-toggle" id="issues-toggle">
                             <button class="card-toggle-btn active" data-view="assigned">Assigned <span id="issues-assigned-count">0</span></button>
                             <button class="card-toggle-btn" data-view="created">Created <span id="issues-created-count">0</span></button>
+                            <button class="card-toggle-btn" data-view="helpdesk">Helpdesk <span id="issues-helpdesk-count">0</span></button>
                         </div>
                     </div>
                     <div class="card-body" id="issues-container">
@@ -1590,7 +1591,7 @@
         renderQuickLinks();
 
         // ========== GitHub API ==========
-        let issuesData = { assigned: [], created: [] };
+        let issuesData = { assigned: [], created: [], helpdesk: [] };
         let currentIssuesView = 'assigned';
 
         async function fetchGitHubData() {
@@ -1664,8 +1665,81 @@
             currentIssuesView = view;
             this.querySelectorAll('.card-toggle-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            renderIssues(issuesData[view], view);
+
+            if (view === 'helpdesk') {
+                renderHelpdeskTickets(issuesData.helpdesk);
+            } else {
+                renderIssues(issuesData[view], view);
+            }
         });
+
+        // ========== OTRS Helpdesk ==========
+        async function fetchOTRSTickets() {
+            const config = getConfig();
+            const workerUrl = config.workerUrl;
+
+            if (!workerUrl) {
+                console.log('No worker URL configured, skipping OTRS');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${workerUrl}/otrs/tickets`);
+                const data = await response.json();
+
+                if (data.error) {
+                    console.error('OTRS error:', data.error);
+                    document.getElementById('issues-helpdesk-count').textContent = '!';
+                    return;
+                }
+
+                issuesData.helpdesk = data.tickets || [];
+                document.getElementById('issues-helpdesk-count').textContent = data.total || issuesData.helpdesk.length;
+
+                // If currently viewing helpdesk, refresh the display
+                if (currentIssuesView === 'helpdesk') {
+                    renderHelpdeskTickets(issuesData.helpdesk);
+                }
+            } catch (err) {
+                console.error('OTRS fetch error:', err);
+                document.getElementById('issues-helpdesk-count').textContent = '!';
+            }
+        }
+
+        function renderHelpdeskTickets(tickets) {
+            const container = document.getElementById('issues-container');
+
+            if (!tickets.length) {
+                showEmptyState('issues-container', '✨', 'No open tickets');
+                return;
+            }
+
+            container.innerHTML = tickets.map(ticket => {
+                const ticketUrl = `https://ticketing.inbo.be/otrs/index.pl?Action=AgentTicketZoom;TicketID=${ticket.TicketID}`;
+                const priorityClass = ticket.Priority?.includes('high') ? 'high' : '';
+
+                return `
+                <a href="${ticketUrl}" class="list-item" target="_blank">
+                    <svg class="list-item-icon issue" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v9.5A1.75 1.75 0 0 1 14.25 13H8.06l-2.573 2.573A1.458 1.458 0 0 1 3 14.543V13H1.75A1.75 1.75 0 0 1 0 11.25Zm1.75-.25a.25.25 0 0 0-.25.25v9.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h6.5a.25.25 0 0 0 .25-.25v-9.5a.25.25 0 0 0-.25-.25Zm7 2.25v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 9a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path>
+                    </svg>
+                    <div class="list-item-content">
+                        <div class="list-item-title">${escapeHtml(ticket.Title)}</div>
+                        <div class="list-item-meta">
+                            <span class="repo">${escapeHtml(ticket.Queue)}</span>
+                            <span>#${ticket.TicketNumber}</span>
+                            <span>${timeAgo(ticket.Changed)}</span>
+                        </div>
+                        <div class="list-item-labels">
+                            <span class="label" style="background: ${ticket.StateType === 'new' ? '#1f6feb' : ticket.StateType === 'open' ? '#238636' : '#8b949e'}20; color: ${ticket.StateType === 'new' ? '#58a6ff' : ticket.StateType === 'open' ? '#3fb950' : '#8b949e'};">
+                                ${escapeHtml(ticket.State)}
+                            </span>
+                            ${ticket.Priority ? `<span class="label" style="background: #8957e520; color: #a371f7;">${escapeHtml(ticket.Priority)}</span>` : ''}
+                        </div>
+                    </div>
+                </a>
+            `}).join('');
+        }
 
         // ========== Repo Search ==========
         let searchTimeout = null;
@@ -2335,6 +2409,7 @@
             document.getElementById('github-status').className = 'status-dot';
             updateProfilePicture();
             fetchGitHubData();
+            fetchOTRSTickets();
             fetchNextMeeting();
             updateLastUpdated();
             fetchCCBNews();

@@ -34,6 +34,9 @@ function handleOptions(request) {
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 
+// OTRS API endpoint
+const OTRS_BASE_URL = 'https://ticketing.inbo.be/otrs/nph-genericinterface.pl/Webservice/DaemonAPI';
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -61,6 +64,8 @@ export default {
           return handleStatus(request, env, corsHeader);
         case '/rss':
           return handleRSS(url, corsHeader);
+        case '/otrs/tickets':
+          return handleOTRSTickets(env, corsHeader);
         default:
           return jsonResponse({ error: 'Not found' }, 404, corsHeader);
       }
@@ -336,6 +341,69 @@ async function handleRSS(url, corsHeader) {
     });
   } catch (error) {
     return jsonResponse({ error: 'Failed to fetch feed' }, 502, corsHeader);
+  }
+}
+
+// OTRS: Fetch tickets for the configured user
+async function handleOTRSTickets(env, corsHeader) {
+  // Get credentials from environment secrets
+  const username = env.OTRS_USERNAME;
+  const password = env.OTRS_PASSWORD;
+
+  if (!username || !password) {
+    return jsonResponse({ error: 'OTRS credentials not configured' }, 500, corsHeader);
+  }
+
+  try {
+    // Step 1: Login to get SessionID
+    const loginResponse = await fetch(`${OTRS_BASE_URL}/Login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ UserLogin: username, Password: password }),
+    });
+
+    const loginData = await loginResponse.json();
+    if (!loginData.SessionID) {
+      return jsonResponse({ error: 'OTRS login failed', details: loginData }, 401, corsHeader);
+    }
+
+    const sessionId = loginData.SessionID;
+
+    // Step 2: Search for new and open tickets owned by user (OwnerID=3 for bert_huygens)
+    // Search both "new" and "open" state types
+    const searchNew = await fetch(`${OTRS_BASE_URL}/Search?SessionID=${sessionId}&StateType=new&OwnerIDs=3`);
+    const searchOpen = await fetch(`${OTRS_BASE_URL}/Search?SessionID=${sessionId}&StateType=open&OwnerIDs=3`);
+
+    const newData = await searchNew.json();
+    const openData = await searchOpen.json();
+
+    // Combine ticket IDs from both searches
+    const allTicketIds = [
+      ...(newData.TicketID || []),
+      ...(openData.TicketID || [])
+    ];
+
+    if (allTicketIds.length === 0) {
+      return jsonResponse({ tickets: [] }, 200, corsHeader);
+    }
+
+    // Step 3: Get details for each ticket (limit to 20 most recent)
+    const ticketIds = allTicketIds.slice(0, 20);
+    const ticketPromises = ticketIds.map(async (ticketId) => {
+      const ticketResponse = await fetch(`${OTRS_BASE_URL}/Get/${ticketId}?SessionID=${sessionId}`);
+      const ticketData = await ticketResponse.json();
+      return ticketData.Ticket?.[0] || null;
+    });
+
+    const tickets = (await Promise.all(ticketPromises)).filter(t => t !== null);
+
+    // Sort by Changed date (most recent first)
+    tickets.sort((a, b) => new Date(b.Changed) - new Date(a.Changed));
+
+    return jsonResponse({ tickets, total: allTicketIds.length }, 200, corsHeader);
+  } catch (error) {
+    console.error('OTRS error:', error);
+    return jsonResponse({ error: 'Failed to fetch OTRS tickets', details: error.message }, 502, corsHeader);
   }
 }
 
