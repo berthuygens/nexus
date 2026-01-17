@@ -926,6 +926,52 @@
             border-radius: 3px;
         }
 
+        .ticket-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-default);
+        }
+
+        .ticket-article {
+            margin-bottom: 16px;
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            border-left: 3px solid var(--accent-blue);
+        }
+
+        .ticket-article:last-child {
+            margin-bottom: 0;
+        }
+
+        .ticket-article-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+
+        .ticket-article-from {
+            color: var(--accent-blue);
+            font-weight: 500;
+        }
+
+        .ticket-article-date {
+            color: var(--text-muted);
+        }
+
+        .ticket-article-body {
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
         .form-group {
             margin-bottom: var(--space-5);
         }
@@ -1758,14 +1804,30 @@
             `;
             document.getElementById('ticket-modal-meta').innerHTML = metaHtml;
 
-            // Extract body from first article
-            let bodyText = 'No content available';
+            // Build conversation thread from all articles
+            let bodyHtml = `<div class="ticket-title">${escapeHtml(ticket.Title)}</div>`;
+
             if (ticket.Article && ticket.Article.length > 0) {
-                const firstArticle = ticket.Article[0];
-                bodyText = firstArticle.Body || 'No content available';
+                bodyHtml += ticket.Article.map(article => {
+                    const from = article.From || article.SenderType || 'Unknown';
+                    const created = article.Created ? timeAgo(article.Created) : '';
+                    const body = article.Body || '';
+
+                    return `
+                        <div class="ticket-article">
+                            <div class="ticket-article-header">
+                                <span class="ticket-article-from">${escapeHtml(from)}</span>
+                                <span class="ticket-article-date">${created}</span>
+                            </div>
+                            <div class="ticket-article-body">${escapeHtml(body)}</div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                bodyHtml += '<div class="ticket-article"><div class="ticket-article-body">No content available</div></div>';
             }
 
-            document.getElementById('ticket-modal-body').innerHTML = `<strong>${escapeHtml(ticket.Title)}</strong><br><br>${escapeHtml(bodyText)}`;
+            document.getElementById('ticket-modal-body').innerHTML = bodyHtml;
             ticketModal.classList.add('active');
         }
 
