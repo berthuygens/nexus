@@ -372,16 +372,16 @@ async function handleOTRSTickets(env, corsHeader) {
     // Small delay after login for session to be ready
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    // Step 2: Search for new and open tickets (limited to reduce load)
+    // Step 2: Search for new and open tickets owned by bert.huygens (OwnerID=3)
     const searchNew = await fetch(`${OTOBO_BASE_URL}/Search`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ SessionID: sessionId, StateType: 'new', Limit: 10 }),
+      body: JSON.stringify({ SessionID: sessionId, StateType: 'new', OwnerIDs: [3], Limit: 50 }),
     });
     const searchOpen = await fetch(`${OTOBO_BASE_URL}/Search`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ SessionID: sessionId, StateType: 'open', Limit: 10 }),
+      body: JSON.stringify({ SessionID: sessionId, StateType: 'open', OwnerIDs: [3], Limit: 50 }),
     });
 
     const newData = await searchNew.json();
@@ -413,7 +413,8 @@ async function handleOTRSTickets(env, corsHeader) {
     }
 
     // Filter by OwnerID=3 (bert.huygens)
-    const tickets = allTickets.filter(t => t.OwnerID === 3);
+    // Use loose equality (==) because OTOBO API may return OwnerID as string or number
+    const tickets = allTickets.filter(t => t.OwnerID == 3);
 
     // Sort by Changed date (most recent first)
     tickets.sort((a, b) => new Date(b.Changed) - new Date(a.Changed));
