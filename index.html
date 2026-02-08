@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://api.github.com https://www.googleapis.com https://www.reddit.com https://sysopbeta-oauth.workers.dev; frame-ancestors 'none'; base-uri 'self'; form-action 'self';">
     <title>sysopbeta</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=2">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon.png?v=2">
@@ -1623,12 +1624,17 @@
                 if (!order.includes(link.id)) sortedLinks.push(link);
             });
 
-            container.innerHTML = sortedLinks.map(link => `
-                <a href="${link.url}" class="quick-link" draggable="true" data-id="${link.id}" target="_blank" rel="noopener">
+            container.innerHTML = sortedLinks.map(link => {
+                // SECURITY: Escape user-controlled values, validate URL protocol
+                const safeUrl = /^https?:\/\//i.test(link.url) ? escapeHtml(link.url) : '#';
+                const safeName = escapeHtml(link.name);
+                const safeId = escapeHtml(link.id);
+                return `
+                <a href="${safeUrl}" class="quick-link" draggable="true" data-id="${safeId}" target="_blank" rel="noopener">
                     ${link.icon}
-                    <span>${link.name}</span>
+                    <span>${safeName}</span>
                 </a>
-            `).join('');
+            `}).join('');
 
             initDragAndDrop();
         }
@@ -2152,9 +2158,18 @@
         }
 
         // ========== Google Calendar API ==========
+        // SECURITY: Store access token in memory only, never in localStorage
+        let _googleToken = null;
+        let _googleTokenExpiry = 0;
+
         async function getAccessToken() {
             const config = getConfig();
             if (!config.workerUrl) return null;
+
+            // Return cached in-memory token if still valid
+            if (_googleToken && _googleTokenExpiry > Date.now()) {
+                return _googleToken;
+            }
 
             try {
                 const res = await fetch(`${config.workerUrl}/token`, { headers: workerHeaders() });
@@ -2162,6 +2177,9 @@
 
                 if (data.error) {
                     if (data.error === 'not_authenticated') {
+                        _googleToken = null;
+                        _googleTokenExpiry = 0;
+                        config.googleConnected = false;
                         delete config.googleAccessToken;
                         delete config.googleTokenExpiry;
                         saveConfig(config);
@@ -2169,10 +2187,14 @@
                     return null;
                 }
 
-                config.googleAccessToken = data.access_token;
-                config.googleTokenExpiry = Date.now() + (data.expires_in * 1000);
+                // SECURITY: Keep token in memory only, not in localStorage
+                _googleToken = data.access_token;
+                _googleTokenExpiry = Date.now() + (data.expires_in * 1000);
+                config.googleConnected = true;
+                delete config.googleAccessToken;
+                delete config.googleTokenExpiry;
                 saveConfig(config);
-                return data.access_token;
+                return _googleToken;
             } catch (err) {
                 console.error('Failed to get token:', err);
                 return null;
@@ -2197,7 +2219,8 @@
             const config = getConfig();
             const statusEl = document.getElementById('calendar-status');
 
-            if (!config.googleAccessToken) {
+            // SECURITY: Check in-memory token or persistent connected flag, not stored token
+            if (!_googleToken && !config.googleConnected) {
                 statusEl.innerHTML = `
                     <button class="calendar-reconnect" onclick="triggerGoogleReconnect()">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2214,7 +2237,7 @@
                 return;
             }
 
-            const timeLeft = (config.googleTokenExpiry || 0) - Date.now();
+            const timeLeft = _googleTokenExpiry - Date.now();
             if (timeLeft <= 0) {
                 statusEl.innerHTML = `
                     <span class="calendar-expiry-warning">Expired</span>
@@ -2244,12 +2267,12 @@
                 return;
             }
 
-            if (!config.googleAccessToken) {
+            if (!_googleToken) {
                 showEmptyState('calendar-container', '🔑', 'Set Worker URL in settings');
                 return;
             }
 
-            if (config.googleTokenExpiry && Date.now() > config.googleTokenExpiry) {
+            if (_googleTokenExpiry && Date.now() > _googleTokenExpiry) {
                 showEmptyState('calendar-container', '🔄', 'Session expired');
                 return;
             }
@@ -2258,19 +2281,24 @@
         }
 
         async function fetchCalendarData() {
-            const config = getConfig();
+            // SECURITY: Use in-memory token, fall back to fetching fresh one
+            const token = _googleToken || await getAccessToken();
+            if (!token) {
+                showEmptyState('calendar-container', '🔑', 'Click Connect to link Calendar');
+                return;
+            }
 
             try {
                 const now = new Date().toISOString();
                 const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${now}&maxResults=20&singleEvents=true&orderBy=startTime`;
 
                 const res = await fetch(url, {
-                    headers: { 'Authorization': `Bearer ${config.googleAccessToken}` }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
 
                 if (res.status === 401) {
-                    config.googleTokenExpiry = 0;
-                    saveConfig(config);
+                    _googleToken = null;
+                    _googleTokenExpiry = 0;
                     updateCalendarStatus();
                     showEmptyState('calendar-container', '🔄', 'Session expired');
                     return;
@@ -2497,8 +2525,12 @@
 
             if (event.data?.type === 'oauth-success') {
                 const config = getConfig();
-                config.googleAccessToken = event.data.accessToken;
-                config.googleTokenExpiry = Date.now() + (event.data.expiresIn * 1000);
+                // SECURITY: Store token in memory only, not in localStorage
+                _googleToken = event.data.accessToken;
+                _googleTokenExpiry = Date.now() + (event.data.expiresIn * 1000);
+                config.googleConnected = true;
+                delete config.googleAccessToken;
+                delete config.googleTokenExpiry;
                 saveConfig(config);
                 updateGoogleAuthStatus();
                 updateCalendarStatus();
