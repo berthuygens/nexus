@@ -17,14 +17,15 @@ const ALLOWED_ORIGINS = [
   'http://127.0.0.1:8080'
 ];
 
-// Handle CORS preflight - returns headers for first allowed origin
-// Actual request handlers use dynamic origin matching
+// Handle CORS preflight - only allow listed origins
 function handleOptions(request) {
   const origin = request?.headers?.get('Origin');
-  const corsOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  if (!origin || !ALLOWED_ORIGINS.includes(origin)) {
+    return new Response(null, { status: 403 });
+  }
   return new Response(null, {
     headers: {
-      'Access-Control-Allow-Origin': corsOrigin,
+      'Access-Control-Allow-Origin': origin,
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     }
@@ -59,7 +60,7 @@ export default {
 
     // Use origin from request, validate against allowed list
     const origin = request.headers.get('Origin');
-    const corsHeader = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+    const corsHeader = ALLOWED_ORIGINS.includes(origin) ? origin : null;
 
     // /auth and /callback are part of the OAuth flow (browser redirects, not fetch)
     // All other endpoints require a valid API key
@@ -89,7 +90,7 @@ export default {
       }
     } catch (error) {
       console.error('Worker error:', error);
-      return jsonResponse({ error: error.message }, 500, corsHeader);
+      return jsonResponse({ error: 'Internal server error' }, 500, corsHeader);
     }
   },
 };
@@ -183,7 +184,7 @@ async function handleCallback(request, env, url) {
     return htmlResponse(`
       <html><body>
         <h1>Token Exchange Failed</h1>
-        <p>Error: ${tokens.error_description || tokens.error}</p>
+        <p>Error: ${escapeHtml(tokens.error_description || tokens.error)}</p>
       </body></html>
     `);
   }
@@ -219,7 +220,7 @@ async function handleCallback(request, env, url) {
         // SECURITY: Only send OAuth token to explicitly allowed origins
         const allowedOrigins = ${allowedOriginsJson};
         if (window.opener) {
-          const message = { type: 'oauth-success', accessToken: '${tokens.access_token}', expiresIn: ${tokens.expires_in} };
+          const message = { type: 'oauth-success', accessToken: ${JSON.stringify(tokens.access_token)}, expiresIn: ${Number(tokens.expires_in) || 0} };
           // Post to each allowed origin - browser only delivers to matching origin
           allowedOrigins.forEach(origin => {
             try {
@@ -348,15 +349,15 @@ async function handleRSS(url, corsHeader) {
 
     const xml = await response.text();
 
-    return new Response(xml, {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/xml',
-        'Access-Control-Allow-Origin': corsHeader,
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Cache-Control': 'public, max-age=300', // Cache for 5 minutes
-      },
-    });
+    const rssHeaders = {
+      'Content-Type': 'application/xml',
+      'Cache-Control': 'public, max-age=300',
+    };
+    if (corsHeader) {
+      rssHeaders['Access-Control-Allow-Origin'] = corsHeader;
+      rssHeaders['Access-Control-Allow-Methods'] = 'GET, OPTIONS';
+    }
+    return new Response(xml, { status: 200, headers: rssHeaders });
   } catch (error) {
     return jsonResponse({ error: 'Failed to fetch feed' }, 502, corsHeader);
   }
@@ -441,21 +442,19 @@ async function handleOTRSTickets(env, corsHeader) {
     return jsonResponse({ tickets }, 200, corsHeader);
   } catch (error) {
     console.error('OTOBO error:', error);
-    return jsonResponse({ error: 'Failed to fetch OTOBO tickets', details: error.message }, 502, corsHeader);
+    return jsonResponse({ error: 'Failed to fetch OTOBO tickets' }, 502, corsHeader);
   }
 }
 
 // Helper: JSON response
-function jsonResponse(data, status = 200, origin = '*') {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': origin,
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
-  });
+function jsonResponse(data, status = 200, origin = null) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (origin) {
+    headers['Access-Control-Allow-Origin'] = origin;
+    headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS';
+    headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
+  }
+  return new Response(JSON.stringify(data), { status, headers });
 }
 
 // Helper: HTML response

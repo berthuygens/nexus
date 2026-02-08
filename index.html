@@ -1081,6 +1081,19 @@
             width: 100%;
         }
 
+        /* ========== Screen Reader Only ========== */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
         /* ========== Responsive ========== */
         @media (max-width: 768px) {
             .container {
@@ -1123,13 +1136,14 @@
 </head>
 <body>
     <!-- Navigation Bar -->
-    <nav class="nav">
-        <nav class="quick-links" id="quick-links"></nav>
+    <nav class="nav" role="navigation" aria-label="Main navigation">
+        <div class="quick-links" id="quick-links" role="toolbar" aria-label="Quick links"></div>
         <div class="nav-search">
             <div class="search-wrapper">
                 <span class="search-prefix">$</span>
-                <input type="text" class="search-input" id="repo-search-input" placeholder="Search repos..." autofocus>
-                <div class="search-results" id="repo-search-results"></div>
+                <label for="repo-search-input" class="sr-only">Search repositories</label>
+                <input type="text" class="search-input" id="repo-search-input" placeholder="Search repos..." autofocus aria-label="Search repositories" aria-autocomplete="list" aria-controls="repo-search-results">
+                <div class="search-results" id="repo-search-results" role="listbox"></div>
             </div>
         </div>
         <div class="nav-controls">
@@ -1142,7 +1156,7 @@
                 </div>
                 <img src="" alt="Profile" id="profile-pic" style="display: none;">
             </a>
-            <button class="nav-btn theme-btn" id="theme-btn" title="Toggle theme">
+            <button class="nav-btn theme-btn" id="theme-btn" title="Toggle theme" aria-label="Toggle theme">
                 <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                 </svg>
@@ -1158,7 +1172,7 @@
                     <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
                 </svg>
             </button>
-            <button class="nav-btn" id="settings-btn" title="Settings">
+            <button class="nav-btn" id="settings-btn" title="Settings" aria-label="Open settings">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="3"></circle>
                     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
@@ -1170,7 +1184,7 @@
     <main class="main">
         <div class="container">
             <!-- Dashboard -->
-            <section class="dashboard">
+            <section class="dashboard" aria-label="Dashboard">
                 <!-- Calendar -->
                 <div class="card">
                     <div class="card-header">
@@ -1271,11 +1285,11 @@
     </main>
 
     <!-- Settings Modal -->
-    <div class="modal-overlay" id="modal">
+    <div class="modal-overlay" id="modal" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
         <div class="modal">
             <div class="modal-header">
-                <h2 class="modal-title">Settings</h2>
-                <button class="modal-close" id="modal-close">
+                <h2 class="modal-title" id="settings-modal-title">Settings</h2>
+                <button class="modal-close" id="modal-close" aria-label="Close settings">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -1288,7 +1302,7 @@
                         <label class="form-label">GitHub Personal Access Token</label>
                         <input type="password" class="form-input" id="github-token" placeholder="ghp_xxxxxxxxxxxx">
                         <p class="form-hint">
-                            Create at <a href="https://github.com/settings/tokens" target="_blank">GitHub Settings → Tokens</a><br>
+                            Create at <a href="https://github.com/settings/tokens" target="_blank" rel="noopener">GitHub Settings → Tokens</a><br>
                             Scopes: <code>repo</code>, <code>read:user</code>
                         </p>
                     </div>
@@ -1344,11 +1358,11 @@
     </div>
 
     <!-- Ticket Detail Modal -->
-    <div class="modal-overlay" id="ticket-modal">
+    <div class="modal-overlay" id="ticket-modal" role="dialog" aria-modal="true" aria-labelledby="ticket-modal-title">
         <div class="modal">
             <div class="modal-header">
                 <h2 class="modal-title" id="ticket-modal-title">Ticket</h2>
-                <button class="modal-close" id="ticket-modal-close">
+                <button class="modal-close" id="ticket-modal-close" aria-label="Close ticket details">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -1358,7 +1372,7 @@
             <div class="modal-body">
                 <div id="ticket-modal-meta" class="ticket-meta"></div>
                 <div id="ticket-modal-body" class="ticket-body"></div>
-                <a id="ticket-modal-link" href="#" target="_blank" class="btn btn-primary btn-block" style="margin-top: 16px;">Open in OTOBO</a>
+                <a id="ticket-modal-link" href="#" target="_blank" rel="noopener" class="btn btn-primary btn-block" style="margin-top: 16px;">Open in OTOBO</a>
             </div>
         </div>
     </div>
@@ -1610,7 +1624,7 @@
             });
 
             container.innerHTML = sortedLinks.map(link => `
-                <a href="${link.url}" class="quick-link" draggable="true" data-id="${link.id}" target="_blank">
+                <a href="${link.url}" class="quick-link" draggable="true" data-id="${link.id}" target="_blank" rel="noopener">
                     ${link.icon}
                     <span>${link.name}</span>
                 </a>
@@ -2037,7 +2051,7 @@
 
             repoSearchResults.classList.add('has-results');
             repoSearchResults.innerHTML = repos.map(repo => `
-                <a href="${repo.html_url}" class="list-item" target="_blank">
+                <a href="${repo.html_url}" class="list-item" target="_blank" rel="noopener">
                     <svg class="list-item-icon repo" viewBox="0 0 16 16" fill="currentColor">
                         <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.45-1.087a.249.249 0 0 0-.3 0L5.4 15.7a.25.25 0 0 1-.4-.2Z"></path>
                     </svg>
@@ -2068,7 +2082,7 @@
                     : '';
 
                 return `
-                <a href="${issue.html_url}" class="list-item" target="_blank">
+                <a href="${issue.html_url}" class="list-item" target="_blank" rel="noopener">
                     <svg class="list-item-icon issue" viewBox="0 0 16 16" fill="currentColor">
                         <path d="M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"></path>
                         <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Z"></path>
@@ -2120,7 +2134,7 @@
             }
 
             container.innerHTML = allPrs.map(pr => `
-                <a href="${pr.html_url}" class="list-item" target="_blank">
+                <a href="${pr.html_url}" class="list-item" target="_blank" rel="noopener">
                     <svg class="list-item-icon pr" viewBox="0 0 16 16" fill="currentColor">
                         <path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354ZM3.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm0 9.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm8.25.75a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Z"></path>
                     </svg>
@@ -2300,7 +2314,7 @@
                 const countdown = getEventCountdown(startDate, isAllDay);
 
                 return `
-                    <a href="${event.htmlLink || 'https://calendar.google.com'}" class="list-item" target="_blank">
+                    <a href="${event.htmlLink || 'https://calendar.google.com'}" class="list-item" target="_blank" rel="noopener">
                         <svg class="list-item-icon calendar" viewBox="0 0 16 16" fill="currentColor">
                             <path d="M4.5 1.75v1.5H2.5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1h-2v-1.5a.75.75 0 0 0-1.5 0v1.5h-4v-1.5a.75.75 0 0 0-1.5 0ZM2.5 6h11v7.25H2.5V6Z"/>
                         </svg>
@@ -2405,6 +2419,17 @@
         const ticketModalClose = document.getElementById('ticket-modal-close');
         ticketModalClose.addEventListener('click', () => ticketModal.classList.remove('active'));
         ticketModal.addEventListener('click', (e) => { if (e.target === ticketModal) ticketModal.classList.remove('active'); });
+
+        // Close modals on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (ticketModal.classList.contains('active')) {
+                    ticketModal.classList.remove('active');
+                } else if (modal.classList.contains('active')) {
+                    modal.classList.remove('active');
+                }
+            }
+        });
 
         settingsForm.addEventListener('submit', (e) => {
             e.preventDefault();

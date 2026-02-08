@@ -7,3 +7,11 @@
 # Editor swap files
 *.swp
 *.swo
+
+# Environment files (secrets)
+.env
+.env.*
+.dev.vars
+
+# Node
+node_modules/
