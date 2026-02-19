@@ -89,7 +89,7 @@ Events with these titles are automatically filtered (work locations):
 
 ## Live URLs
 
-- https://sysopbeta.be (custom domain via CNAME)
+- https://automate.terminals.work (custom domain via CNAME)
 - https://berthuygens.github.io/daemon/
 - Worker: https://sysopbeta-oauth.huygens-bert.workers.dev
 
