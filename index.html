@@ -743,6 +743,78 @@
             background: var(--accent-muted);
         }
 
+        /* ========== Icon Picker ========== */
+        .ql-icon-btn {
+            width: 40px;
+            height: 40px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all var(--duration-fast) var(--ease-out);
+            position: relative;
+        }
+
+        .ql-icon-btn:hover {
+            border-color: var(--border-hover);
+            color: var(--text-primary);
+        }
+
+        .ql-icon-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .ql-icon-picker {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            z-index: 100;
+            margin-top: 4px;
+            padding: 8px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-hover);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 4px;
+        }
+
+        .ql-icon-option {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid transparent;
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all var(--duration-fast) var(--ease-out);
+        }
+
+        .ql-icon-option:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .ql-icon-option.selected {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-muted);
+        }
+
+        .ql-icon-option svg {
+            width: 18px;
+            height: 18px;
+        }
+
         /* ========== Footer ========== */
         .footer {
             text-align: center;
@@ -1571,13 +1643,39 @@
         });
 
         // ========== Quick Links ==========
-        const QUICK_LINKS_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
+        const QUICK_LINK_ICONS = {
+            link: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
+            robot: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><line x1="12" y1="7" x2="12" y2="11"/><line x1="8" y1="16" x2="8" y2="16.01"/><line x1="16" y1="16" x2="16" y2="16.01"/></svg>',
+            skull: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="8"/><circle cx="9" cy="9" r="1.5"/><circle cx="15" cy="9" r="1.5"/><path d="M9 18h1.5l1.5-2 1.5 2H15"/><path d="M10 22v-2"/><path d="M14 22v-2"/></svg>',
+            sword: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><line x1="19" y1="21" x2="21" y2="19"/></svg>',
+            dog: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5.172C10 3.782 8.423 2.679 6.5 3c-2.823.47-4.113 6.006-4 7 .08.703 1.725 1.722 3.656 1 1.261-.472 1.96-1.45 2.344-2.5"/><path d="M14.267 5.172c0-1.39 1.577-2.493 3.5-2.172 2.823.47 4.113 6.006 4 7-.08.703-1.725 1.722-3.656 1-1.261-.472-1.855-1.45-2.239-2.5"/><path d="M8 14v.5"/><path d="M16 14v.5"/><path d="M11.25 16.25h1.5L12 17l-.75-.75Z"/><path d="M4.42 11.247A13.152 13.152 0 0 0 4 14.556C4 18.728 7.582 21 12 21s8-2.272 8-6.444a11.702 11.702 0 0 0-.479-3.509"/></svg>',
+            circuit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="8" height="8" rx="1"/><path d="M12 2v4"/><path d="M12 18v4"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4 4l3.5 3.5"/><path d="M16.5 16.5L20 20"/><path d="M20 4l-3.5 3.5"/><path d="M7.5 16.5L4 20"/></svg>',
+            drone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6c0-1.1.9-2 2-2h2a2 2 0 0 1 2 2"/><path d="M15 6c0-1.1.9-2 2-2h2a2 2 0 0 1 2 2"/><rect x="7" y="10" width="10" height="4" rx="1"/><path d="M5 6h4"/><path d="M15 6h4"/><path d="M7 12H5a2 2 0 0 1 0-4"/><path d="M17 12h2a2 2 0 0 0 0-4"/><path d="M10 14v3"/><path d="M14 14v3"/><path d="M8 17h8"/></svg>',
+            ufo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3C8 3 5 5.69 5 9h14c0-3.31-3-6-7-6Z"/><ellipse cx="12" cy="9" rx="10" ry="3"/><path d="M7 12l-2 5"/><path d="M17 12l2 5"/><path d="M12 12v5"/></svg>',
+            city: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="6" height="14"/><rect x="9" y="3" width="6" height="18"/><rect x="17" y="10" width="6" height="11"/><line x1="4" y1="11" x2="4" y2="11.01"/><line x1="4" y1="15" x2="4" y2="15.01"/><line x1="12" y1="7" x2="12" y2="7.01"/><line x1="12" y1="11" x2="12" y2="11.01"/><line x1="12" y1="15" x2="12" y2="15.01"/><line x1="20" y1="14" x2="20" y2="14.01"/></svg>',
+            arm: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20V8a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v12"/><path d="M6 12h12"/><circle cx="12" cy="8" r="1"/><path d="M9 20h6"/></svg>',
+            brain: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 0-4 4c-1.66 0-3 1.34-3 3a3 3 0 0 0 .88 2.13A3 3 0 0 0 5 14c0 1.3.84 2.4 2 2.82V20a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-3.18A3 3 0 0 0 19 14a3 3 0 0 0-.88-2.13A3 3 0 0 0 19 9c0-1.66-1.34-3-3-3a4 4 0 0 0-4-4Z"/><path d="M12 2v19"/><path d="M8 8h2"/><path d="M14 8h2"/><path d="M8 14h2"/><path d="M14 14h2"/></svg>',
+            vr: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="10" rx="3"/><path d="M10 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z"/><path d="M18 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z"/><path d="M10 12h4"/></svg>',
+            car: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14v-5l-2-6H7L5 12v5Z"/><circle cx="7.5" cy="17" r="2"/><circle cx="16.5" cy="17" r="2"/><path d="M5 12h14"/><path d="M3 17h2"/><path d="M19 17h2"/></svg>',
+            shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>',
+            terminal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>',
+            monitor: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
+            cube: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
+            document: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
+            satellite: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M7.76 16.24a6 6 0 0 1 0-8.49"/><path d="M4.93 19.07a10 10 0 0 1 0-14.14"/></svg>',
+            lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><circle cx="12" cy="16" r="1"/></svg>'
+        };
+
+        function getQuickLinkIcon(key) {
+            return QUICK_LINK_ICONS[key] || QUICK_LINK_ICONS.link;
+        }
+
         const MAX_QUICK_LINKS = 5;
 
         function getQuickLinks() {
             const config = getConfig();
             if (Array.isArray(config.quickLinks)) {
-                return config.quickLinks.filter(l => l.name && l.url).slice(0, MAX_QUICK_LINKS);
+                return config.quickLinks.filter(l => l.name && l.url).slice(0, MAX_QUICK_LINKS).map(l => ({ ...l, icon: l.icon || 'link' }));
             }
             return [];
         }
@@ -1597,7 +1695,7 @@
                 const safeName = escapeHtml(link.name);
                 return `
                 <a href="${safeUrl}" class="quick-link" draggable="true" data-idx="${i}" target="_blank" rel="noopener">
-                    ${QUICK_LINKS_ICON}
+                    ${getQuickLinkIcon(link.icon)}
                     <span>${safeName}</span>
                 </a>
             `}).join('');
@@ -1684,26 +1782,72 @@
 
             container.innerHTML = '';
             for (let i = 0; i < MAX_QUICK_LINKS; i++) {
-                const link = links[i] || { name: '', url: '' };
+                const link = links[i] || { name: '', url: '', icon: 'link' };
+                const iconKey = link.icon || 'link';
                 const row = document.createElement('div');
-                row.style.cssText = 'display: flex; gap: 8px;';
+                row.style.cssText = 'display: flex; gap: 8px; align-items: center;';
                 row.innerHTML = `
+                    <button type="button" class="ql-icon-btn" data-idx="${i}" data-icon="${escapeHtml(iconKey)}" title="Choose icon">${getQuickLinkIcon(iconKey)}</button>
                     <input type="text" class="form-input ql-name" data-idx="${i}" placeholder="Name" value="${escapeHtml(link.name || '')}" style="flex: 0 0 100px;">
                     <input type="text" class="form-input ql-url" data-idx="${i}" placeholder="https://..." value="${escapeHtml(link.url || '')}" style="flex: 1;">
                 `;
+                row.querySelector('.ql-icon-btn').addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    toggleIconPicker(this);
+                });
                 container.appendChild(row);
             }
+        }
+
+        function toggleIconPicker(btn) {
+            // Close any existing picker
+            const existing = document.querySelector('.ql-icon-picker');
+            if (existing) {
+                existing.remove();
+                if (existing.parentElement === btn) return;
+            }
+
+            const currentIcon = btn.dataset.icon || 'link';
+            const picker = document.createElement('div');
+            picker.className = 'ql-icon-picker';
+
+            Object.keys(QUICK_LINK_ICONS).forEach(key => {
+                const option = document.createElement('div');
+                option.className = 'ql-icon-option' + (key === currentIcon ? ' selected' : '');
+                option.innerHTML = QUICK_LINK_ICONS[key];
+                option.title = key;
+                option.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    btn.dataset.icon = key;
+                    btn.innerHTML = getQuickLinkIcon(key);
+                    picker.remove();
+                });
+                picker.appendChild(option);
+            });
+
+            btn.appendChild(picker);
+
+            // Close picker on outside click
+            function closeOnOutsideClick(e) {
+                if (!picker.contains(e.target) && e.target !== btn) {
+                    picker.remove();
+                    document.removeEventListener('click', closeOnOutsideClick);
+                }
+            }
+            setTimeout(() => document.addEventListener('click', closeOnOutsideClick), 0);
         }
 
         function collectQuickLinksFromSettings() {
             const names = document.querySelectorAll('.ql-name');
             const urls = document.querySelectorAll('.ql-url');
+            const icons = document.querySelectorAll('.ql-icon-btn');
             const links = [];
             for (let i = 0; i < MAX_QUICK_LINKS; i++) {
                 const name = names[i]?.value?.trim();
                 const url = urls[i]?.value?.trim();
+                const icon = icons[i]?.dataset?.icon || 'link';
                 if (name && url) {
-                    links.push({ name, url });
+                    links.push({ name, url, icon });
                 }
             }
             return links;
