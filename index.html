@@ -1022,28 +1022,36 @@
         }
 
         .ticket-article {
-            margin-bottom: 16px;
-            padding: 12px;
+            margin-bottom: 20px;
+            padding: 14px 16px;
             background: var(--bg-tertiary);
             border-radius: 8px;
             border-left: 3px solid var(--accent-blue);
+            border-bottom: 1px solid var(--border-default);
+        }
+
+        .ticket-article:first-child {
+            border-left-color: var(--accent-green, #3fb950);
         }
 
         .ticket-article:last-child {
             margin-bottom: 0;
+            border-bottom: none;
         }
 
         .ticket-article-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-default);
             font-size: 12px;
         }
 
         .ticket-article-from {
             color: var(--accent-blue);
-            font-weight: 500;
+            font-weight: 600;
         }
 
         .ticket-article-date {
