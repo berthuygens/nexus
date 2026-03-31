@@ -3143,21 +3143,20 @@
                 fetchFeeds(allFeeds, 100)
             ]);
 
-            // Tag RSS items that match supply chain tech
+            // Only keep items that match our supply chain tech
             rssItems.forEach(item => {
                 item.supplyChainMatch = matchSupplyChain(item.title);
             });
+            const matchedRSS = rssItems.filter(i => i.supplyChainMatch);
+            const matchedKEV = kevItems.filter(i => i.supplyChainMatch);
 
-            // Combine: supply chain matches first, then KEV, then rest
-            const matched = rssItems.filter(i => i.supplyChainMatch);
-            const kevSorted = kevItems.sort((a, b) => (b.date || 0) - (a.date || 0));
-            const unmatched = rssItems.filter(i => !i.supplyChainMatch);
-
-            // Interleave: matched RSS (red) + KEV entries + recent unmatched RSS
-            const combined = [...matched, ...kevSorted, ...unmatched].slice(0, 50);
+            // Combine: RSS matches (red) + KEV matches (red), sorted by date
+            const combined = [...matchedRSS, ...matchedKEV]
+                .sort((a, b) => (b.date || 0) - (a.date || 0))
+                .slice(0, 50);
 
             if (combined.length === 0) {
-                showEmptyState('supplychain-container', '📦', 'No supply chain data');
+                showEmptyState('supplychain-container', '✅', 'No vulnerabilities found');
                 return;
             }
             startNewsRotation('supplychain-container', 'supplychain-progress', combined, 5, true, 18000);
