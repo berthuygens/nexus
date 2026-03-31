@@ -724,7 +724,27 @@
         .source-aws { background: rgba(251, 146, 60, 0.15); color: #fb923c; }
         .source-sans { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
         .source-msrc { background: rgba(14, 165, 233, 0.15); color: #38bdf8; }
-        .source-hn { background: rgba(255, 102, 0, 0.15); color: #ff6600; }
+        .source-kev { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+
+        .supply-chain-match .security-news-title {
+            color: #ef4444 !important;
+            font-weight: 600;
+        }
+        .supply-chain-match:hover .security-news-title {
+            color: #f87171 !important;
+        }
+        .supply-chain-tag {
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 1px 5px;
+            border-radius: var(--radius-sm);
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            margin-left: 6px;
+            flex-shrink: 0;
+        }
 
         .security-news-content {
             flex: 1;
@@ -1457,18 +1477,18 @@
                         </div>
                     </div>
                 </div>
-                <!-- Tech News -->
+                <!-- Supply Chain -->
                 <div class="card">
                     <div class="card-header">
                         <div class="card-title">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
+                                <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
                             </svg>
-                            Tech News
+                            Supply Chain
                         </div>
-                        <div class="security-news-progress" id="tech-progress"></div>
+                        <div class="security-news-progress" id="supplychain-progress"></div>
                     </div>
-                    <div class="card-body" id="tech-news-container">
+                    <div class="card-body" id="supplychain-container">
                         <div class="loading">
                             <div class="loading-dots"><span></span><span></span><span></span></div>
                         </div>
@@ -2931,8 +2951,9 @@
             { id: 'sans', name: 'SANS', url: 'https://isc.sans.edu/rssfeed.xml', className: 'source-sans' },
             { id: 'msrc', name: 'MSRC', url: 'https://api.msrc.microsoft.com/update-guide/rss', className: 'source-msrc' }
         ];
-        const TECH_FEEDS = [
-            { id: 'hn', name: 'HN', url: 'https://hnrss.org/frontpage', className: 'source-hn' }
+        // Supply chain technologies to monitor across security feeds
+        const SUPPLY_CHAIN_TECH = [
+            'trivy', 'aqua security', 'aquasecurity'
         ];
 
         function parseRSSItems(xmlDoc, feed) {
@@ -2976,10 +2997,10 @@
 
         function renderNewsPage(items, showBadge) {
             return items.map(item => `
-                <a class="security-news-item" href="${safeHref(item.link)}" target="_blank" rel="noopener">
+                <a class="security-news-item${item.supplyChainMatch ? ' supply-chain-match' : ''}" href="${safeHref(item.link)}" target="_blank" rel="noopener">
                     ${showBadge ? `<span class="source-badge ${escapeHtml(item.feed.className)}">${escapeHtml(item.feed.name)}</span>` : ''}
                     <div class="security-news-content">
-                        <div class="security-news-title">${escapeHtml(item.title)}</div>
+                        <div class="security-news-title">${escapeHtml(item.title)}${item.supplyChainMatch ? `<span class="supply-chain-tag">${escapeHtml(item.supplyChainMatch)}</span>` : ''}</div>
                         ${item.date ? `<div class="security-news-time">${timeAgo(item.date.toISOString())}</div>` : ''}
                     </div>
                 </a>
@@ -3078,18 +3099,68 @@
             startNewsRotation('security-news-container', 'security-progress', items, 5, true, 18000);
         }
 
-        async function fetchTechNews() {
+        function matchSupplyChain(title) {
+            const lower = title.toLowerCase();
+            for (const tech of SUPPLY_CHAIN_TECH) {
+                if (lower.includes(tech)) return tech;
+            }
+            return null;
+        }
+
+        async function fetchKEV(config) {
+            try {
+                const response = await fetch(`${config.workerUrl}/kev`, { headers: workerHeaders() });
+                if (!response.ok) return [];
+                const data = await response.json();
+                const cutoff = new Date();
+                cutoff.setDate(cutoff.getDate() - 30);
+                const kevFeed = { id: 'kev', name: 'CISA KEV', className: 'source-kev' };
+                return (data.vulnerabilities || [])
+                    .filter(v => new Date(v.dateAdded) >= cutoff)
+                    .map(v => ({
+                        title: `${v.cveID}: ${v.vulnerabilityName}`,
+                        link: `https://nvd.nist.gov/vuln/detail/${encodeURIComponent(v.cveID)}`,
+                        date: new Date(v.dateAdded),
+                        feed: kevFeed,
+                        supplyChainMatch: matchSupplyChain(`${v.vendorProject} ${v.product} ${v.vulnerabilityName} ${v.shortDescription}`)
+                    }));
+            } catch {
+                return [];
+            }
+        }
+
+        async function fetchSupplyChain() {
             const config = getConfig();
             if (!config.workerUrl) {
-                showEmptyState('tech-news-container', '🔧', 'Set worker URL in settings');
+                showEmptyState('supplychain-container', '🔧', 'Set worker URL in settings');
                 return;
             }
-            const items = await fetchFeeds(TECH_FEEDS, 50);
-            if (items.length === 0) {
-                showEmptyState('tech-news-container', '💻', 'No tech news available');
+
+            // Fetch CISA KEV and all security feeds in parallel
+            const allFeeds = [...CCB_FEEDS, ...SECURITY_FEEDS];
+            const [kevItems, rssItems] = await Promise.all([
+                fetchKEV(config),
+                fetchFeeds(allFeeds, 100)
+            ]);
+
+            // Tag RSS items that match supply chain tech
+            rssItems.forEach(item => {
+                item.supplyChainMatch = matchSupplyChain(item.title);
+            });
+
+            // Combine: supply chain matches first, then KEV, then rest
+            const matched = rssItems.filter(i => i.supplyChainMatch);
+            const kevSorted = kevItems.sort((a, b) => (b.date || 0) - (a.date || 0));
+            const unmatched = rssItems.filter(i => !i.supplyChainMatch);
+
+            // Interleave: matched RSS (red) + KEV entries + recent unmatched RSS
+            const combined = [...matched, ...kevSorted, ...unmatched].slice(0, 50);
+
+            if (combined.length === 0) {
+                showEmptyState('supplychain-container', '📦', 'No supply chain data');
                 return;
             }
-            startNewsRotation('tech-news-container', 'tech-progress', items, 5, false, 18000);
+            startNewsRotation('supplychain-container', 'supplychain-progress', combined, 5, true, 18000);
         }
 
         // ========== Init ==========
@@ -3102,7 +3173,7 @@
             updateLastUpdated();
             fetchCCBNews();
             fetchSecurityNews();
-            fetchTechNews();
+            fetchSupplyChain();
         }
 
         init();

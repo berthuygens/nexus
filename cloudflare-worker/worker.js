@@ -81,6 +81,8 @@ export default {
           return handleStatus(request, env, corsHeader);
         case '/rss':
           return handleRSS(url, corsHeader);
+        case '/kev':
+          return handleKEV(corsHeader);
         case '/otrs/tickets':
           return handleOTRSTickets(env, corsHeader);
         default:
@@ -335,7 +337,6 @@ async function handleRSS(url, corsHeader) {
     'https://aws.amazon.com/blogs/security/feed/',
     'https://isc.sans.edu/rssfeed.xml',
     'https://api.msrc.microsoft.com/update-guide/rss',
-    'https://hnrss.org/frontpage'
   ];
 
   if (!allowedFeeds.includes(feedUrl)) {
@@ -364,6 +365,33 @@ async function handleRSS(url, corsHeader) {
     return new Response(xml, { status: 200, headers: rssHeaders });
   } catch (error) {
     return jsonResponse({ error: 'Failed to fetch feed' }, 502, corsHeader);
+  }
+}
+
+// CISA KEV: Proxy Known Exploited Vulnerabilities catalog
+async function handleKEV(corsHeader) {
+  try {
+    const response = await fetch('https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json', {
+      headers: { 'User-Agent': 'DAEMON Dashboard KEV Fetcher' }
+    });
+
+    if (!response.ok) {
+      return jsonResponse({ error: `KEV returned ${response.status}` }, 502, corsHeader);
+    }
+
+    const data = await response.json();
+
+    const kevHeaders = {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'public, max-age=3600',
+    };
+    if (corsHeader) {
+      kevHeaders['Access-Control-Allow-Origin'] = corsHeader;
+      kevHeaders['Access-Control-Allow-Methods'] = 'GET, OPTIONS';
+    }
+    return new Response(JSON.stringify(data), { status: 200, headers: kevHeaders });
+  } catch (error) {
+    return jsonResponse({ error: 'Failed to fetch KEV catalog' }, 502, corsHeader);
   }
 }
 
