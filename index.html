@@ -2951,9 +2951,44 @@
             { id: 'sans', name: 'SANS', url: 'https://isc.sans.edu/rssfeed.xml', className: 'source-sans' },
             { id: 'msrc', name: 'MSRC', url: 'https://api.msrc.microsoft.com/update-guide/rss', className: 'source-msrc' }
         ];
+        // High-risk vulnerability indicators, used to filter out standard updates
+        const VULN_INDICATORS = [
+            'cve-', 'vulnerability', 'vuln ', 'flaw',
+            'zero-day', 'zero day', '0-day', '0day',
+            'exploit', 'rce', 'remote code execution',
+            'bypass', 'takeover', 'bootkit', 'rootkit'
+        ];
+
         // Supply chain technologies to monitor across security feeds
         const SUPPLY_CHAIN_TECH = [
-            'trivy', 'aqua security', 'aquasecurity'
+            {
+                label: 'Trivy',
+                include: ['trivy', 'aqua security', 'aquasecurity']
+            },
+            {
+                label: 'AWS',
+                include: [
+                    'aws ', ' aws', 'amazon web services',
+                    'amazon s3', 'amazon ec2', 'amazon rds',
+                    'amazon iam', 'cloudfront', 'amazon ecs', 'amazon eks'
+                ],
+                requireVuln: true
+            },
+            {
+                label: 'Windows',
+                include: [
+                    'windows 10', 'windows 11',
+                    'secure boot', 'bitlocker', 'bootkit', 'uefi', 'blacklotus',
+                    'windows defender', 'microsoft defender', 'smartscreen',
+                    'microsoft edge'
+                ],
+                exclude: [
+                    'windows server', 'active directory', 'exchange server',
+                    'sharepoint', 'domain controller', 'iis ', 'hyper-v',
+                    'azure ad', 'entra id', 'wsus', 'sccm'
+                ],
+                requireVuln: true
+            }
         ];
 
         function parseRSSItems(xmlDoc, feed) {
@@ -3102,7 +3137,10 @@
         function matchSupplyChain(title) {
             const lower = title.toLowerCase();
             for (const tech of SUPPLY_CHAIN_TECH) {
-                if (lower.includes(tech)) return tech;
+                if (!tech.include.some(k => lower.includes(k))) continue;
+                if (tech.exclude && tech.exclude.some(k => lower.includes(k))) continue;
+                if (tech.requireVuln && !VULN_INDICATORS.some(k => lower.includes(k))) continue;
+                return tech.label;
             }
             return null;
         }
@@ -3122,7 +3160,7 @@
                         link: `https://nvd.nist.gov/vuln/detail/${encodeURIComponent(v.cveID)}`,
                         date: new Date(v.dateAdded),
                         feed: kevFeed,
-                        supplyChainMatch: matchSupplyChain(`${v.vendorProject} ${v.product} ${v.vulnerabilityName} ${v.shortDescription}`)
+                        supplyChainMatch: matchSupplyChain(`${v.cveID} ${v.vendorProject} ${v.product} ${v.vulnerabilityName} ${v.shortDescription}`)
                     }));
             } catch {
                 return [];
