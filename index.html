@@ -733,6 +733,23 @@
         .supply-chain-match:hover .security-news-title {
             color: #f87171 !important;
         }
+
+        /* AWS Monitoring card: always render in red so alerts stand out */
+        .card-title.aws-monitoring,
+        .card-title.aws-monitoring svg {
+            color: #ef4444 !important;
+        }
+        .aws-monitoring-body .list-item-title,
+        .aws-monitoring-body .list-item-meta,
+        .aws-monitoring-body .list-item-meta span,
+        .aws-monitoring-body .list-item-icon,
+        .aws-monitoring-body .empty-text {
+            color: #ef4444 !important;
+            font-weight: 600;
+        }
+        .aws-monitoring-body .list-item:hover .list-item-title {
+            color: #f87171 !important;
+        }
         .supply-chain-tag {
             font-size: 9px;
             font-weight: 700;
@@ -1399,24 +1416,6 @@
                     </div>
                 </div>
 
-                <!-- Pull Requests -->
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title prs">
-                            <svg viewBox="0 0 16 16" fill="currentColor">
-                                <path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354ZM3.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm0 9.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm8.25.75a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Z"></path>
-                            </svg>
-                            Pull Requests
-                        </div>
-                        <span class="card-badge" id="prs-count">0</span>
-                    </div>
-                    <div class="card-body" id="prs-container">
-                        <div class="loading">
-                            <div class="loading-dots"><span></span><span></span><span></span></div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Issues -->
                 <div class="card">
                     <div class="card-header">
@@ -1431,6 +1430,7 @@
                             <button class="card-toggle-btn active" data-view="assigned">Assigned <span id="issues-assigned-count">0</span></button>
                             <button class="card-toggle-btn" data-view="created">Created <span id="issues-created-count">0</span></button>
                             <button class="card-toggle-btn" data-view="helpdesk">Helpdesk <span id="issues-helpdesk-count">0</span></button>
+                            <button class="card-toggle-btn" data-view="prs">PRs <span id="issues-prs-count">0</span></button>
                         </div>
                     </div>
                     <div class="card-body" id="issues-container">
@@ -1439,14 +1439,11 @@
                         </div>
                     </div>
                 </div>
-            </section>
 
-            <!-- Chat / Monitoring Row -->
-            <section class="dashboard">
                 <!-- AWS Monitoring (Google Chat) -->
                 <div class="card">
                     <div class="card-header">
-                        <div class="card-title prs">
+                        <div class="card-title aws-monitoring">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                             </svg>
@@ -1454,7 +1451,7 @@
                         </div>
                         <span class="card-badge" id="chat-count">0</span>
                     </div>
-                    <div class="card-body" id="chat-container">
+                    <div class="card-body aws-monitoring-body" id="chat-container">
                         <div class="loading">
                             <div class="loading-dots"><span></span><span></span><span></span></div>
                         </div>
@@ -2066,7 +2063,7 @@
         renderQuickLinks();
 
         // ========== GitHub API ==========
-        let issuesData = { assigned: [], created: [], helpdesk: [] };
+        let issuesData = { assigned: [], created: [], helpdesk: [], prs: [] };
         let currentIssuesView = 'assigned';
 
         async function fetchGitHubData() {
@@ -2075,7 +2072,6 @@
 
             if (!token) {
                 showEmptyState('issues-container', '🔑', 'Add GitHub token in settings');
-                showEmptyState('prs-container', '🔑', 'Add GitHub token in settings');
                 document.getElementById('github-status').classList.add('disconnected');
                 return;
             }
@@ -2132,25 +2128,29 @@
                     }));
                 }
 
-                renderIssues(currentIssuesView === 'assigned' ? assignedIssues : createdIssues, currentIssuesView);
-                renderPRs(prs, reviewPrs, watchedPrs);
+                // Combine all PR sources into a single deduped list for the PRs tab
+                const combinedPrs = combinePRs(prs, reviewPrs, watchedPrs);
+                issuesData.prs = combinedPrs;
+
+                if (currentIssuesView === 'prs') {
+                    renderPRs(combinedPrs);
+                } else {
+                    renderIssues(currentIssuesView === 'assigned' ? assignedIssues : createdIssues, currentIssuesView);
+                }
 
                 document.getElementById('github-status').classList.add('connected');
                 const assignedCountEl = document.getElementById('issues-assigned-count');
                 const createdCountEl = document.getElementById('issues-created-count');
+                const prsCountEl = document.getElementById('issues-prs-count');
                 assignedCountEl.textContent = assignedIssues.length;
                 createdCountEl.textContent = createdIssues.length;
+                prsCountEl.textContent = combinedPrs.length;
                 assignedCountEl.classList.toggle('has-items', assignedIssues.length > 0);
                 createdCountEl.classList.toggle('has-items', createdIssues.length > 0);
-                // Calculate unique PR count
-                const allPrIds = new Set(prs.map(p => p.id));
-                reviewPrs.forEach(p => allPrIds.add(p.id));
-                watchedPrs.forEach(p => allPrIds.add(p.id));
-                document.getElementById('prs-count').textContent = allPrIds.size;
+                prsCountEl.classList.toggle('has-items', combinedPrs.length > 0);
             } catch (err) {
                 console.error('GitHub fetch error:', err);
                 showEmptyState('issues-container', '⚠️', err.message || 'Failed to fetch');
-                showEmptyState('prs-container', '⚠️', err.message || 'Failed to fetch');
                 document.getElementById('github-status').classList.add('disconnected');
             }
         }
@@ -2168,6 +2168,8 @@
 
             if (view === 'helpdesk') {
                 renderHelpdeskTickets(issuesData.helpdesk);
+            } else if (view === 'prs') {
+                renderPRs(issuesData.prs);
             } else {
                 renderIssues(issuesData[view], view);
             }
@@ -2539,9 +2541,7 @@
             `}).join('');
         }
 
-        function renderPRs(prs, reviewPrs = [], watchedPrs = []) {
-            const container = document.getElementById('prs-container');
-
+        function combinePRs(prs, reviewPrs = [], watchedPrs = []) {
             const allPrs = [...prs];
             const prIds = new Set(prs.map(p => p.id));
             reviewPrs.forEach(pr => {
@@ -2557,9 +2557,14 @@
                     prIds.add(pr.id);
                 }
             });
+            return allPrs;
+        }
 
-            if (!allPrs.length) {
-                showEmptyState('prs-container', '🎉', 'No open pull requests');
+        function renderPRs(allPrs) {
+            const container = document.getElementById('issues-container');
+
+            if (!allPrs || !allPrs.length) {
+                showEmptyState('issues-container', '🎉', 'No open pull requests');
                 return;
             }
 
