@@ -1441,6 +1441,27 @@
                 </div>
             </section>
 
+            <!-- Chat / Monitoring Row -->
+            <section class="dashboard">
+                <!-- AWS Monitoring (Google Chat) -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title prs">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            </svg>
+                            AWS Monitoring
+                        </div>
+                        <span class="card-badge" id="chat-count">0</span>
+                    </div>
+                    <div class="card-body" id="chat-container">
+                        <div class="loading">
+                            <div class="loading-dots"><span></span><span></span><span></span></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <!-- Security News Row -->
             <section class="dashboard">
                 <!-- CCB Advisories -->
@@ -1633,6 +1654,7 @@
     <script>
         // ========== Configuration ==========
         const CONFIG_KEY = 'terminal-home-config';
+        const CHAT_SPACE_ID = 'spaces/AAQAECIE4-I'; // AWS Monitoring - PROD
 
         function getConfig() {
             try {
@@ -2190,6 +2212,70 @@
                 helpdeskCountEl.textContent = '!';
                 helpdeskCountEl.classList.remove('has-items');
             }
+        }
+
+        // ========== Google Chat (AWS Monitoring) ==========
+        async function fetchChatMessages() {
+            const config = getConfig();
+            const workerUrl = config.workerUrl;
+            if (!workerUrl) return;
+
+            const countEl = document.getElementById('chat-count');
+            try {
+                const params = new URLSearchParams({ spaceId: CHAT_SPACE_ID, limit: '10' });
+                const response = await fetch(`${workerUrl}/chat/messages?${params}`, { headers: workerHeaders() });
+                const data = await response.json();
+
+                if (data.error === 'not_authenticated') {
+                    showEmptyState('chat-container', '🔑', 'Connect Google to read chat');
+                    countEl.textContent = '0';
+                    countEl.classList.remove('has-items');
+                    return;
+                }
+                if (data.error) {
+                    showEmptyState('chat-container', '⚠️', 'Chat fetch failed');
+                    countEl.textContent = '!';
+                    countEl.classList.remove('has-items');
+                    return;
+                }
+
+                const messages = data.messages || [];
+                countEl.textContent = messages.length;
+                countEl.classList.toggle('has-items', messages.length > 0);
+
+                if (!messages.length) {
+                    showEmptyState('chat-container', '✨', 'No recent messages');
+                    return;
+                }
+                renderChatMessages(messages, data.spaceUri);
+            } catch (err) {
+                console.error('Chat fetch error:', err);
+                showEmptyState('chat-container', '⚠️', 'Chat fetch failed');
+                countEl.textContent = '!';
+                countEl.classList.remove('has-items');
+            }
+        }
+
+        function renderChatMessages(messages, spaceUri) {
+            const container = document.getElementById('chat-container');
+            container.innerHTML = messages.map(m => {
+                const text = (m.text || '(no text)').slice(0, 200);
+                const sender = m.sender || 'Unknown';
+                return `
+                    <a href="${safeHref(spaceUri)}" class="list-item" target="_blank" rel="noopener">
+                        <svg class="list-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                        <div class="list-item-content">
+                            <div class="list-item-title">${escapeHtml(text)}</div>
+                            <div class="list-item-meta">
+                                <span>${escapeHtml(sender)}</span>
+                                <span>${timeAgo(m.createTime)}</span>
+                            </div>
+                        </div>
+                    </a>
+                `;
+            }).join('');
         }
 
         // Store tickets for popup access
@@ -3223,6 +3309,7 @@
             fetchGitHubData();
             fetchOTRSTickets();
             fetchNextMeeting();
+            fetchChatMessages();
             updateLastUpdated();
             fetchCCBNews();
             fetchSecurityNews();

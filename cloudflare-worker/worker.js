@@ -85,6 +85,8 @@ export default {
           return handleKEV(corsHeader);
         case '/otrs/tickets':
           return handleOTRSTickets(env, corsHeader);
+        case '/chat/messages':
+          return handleChatMessages(env, url, corsHeader);
         default:
           return jsonResponse({ error: 'Not found' }, 404, corsHeader);
       }
@@ -107,7 +109,11 @@ async function handleAuth(env, url) {
     client_id: env.GOOGLE_CLIENT_ID,
     redirect_uri: redirectUri,
     response_type: 'code',
-    scope: 'https://www.googleapis.com/auth/calendar.readonly',
+    scope: [
+      'https://www.googleapis.com/auth/calendar.readonly',
+      'https://www.googleapis.com/auth/chat.spaces.readonly',
+      'https://www.googleapis.com/auth/chat.messages.readonly',
+    ].join(' '),
     access_type: 'offline', // This gets us a refresh token!
     prompt: 'consent', // Force consent to ensure refresh token
     state: state,
@@ -484,6 +490,90 @@ async function handleOTRSTickets(env, corsHeader) {
   } catch (error) {
     console.error('OTOBO error:', error);
     return jsonResponse({ error: 'Failed to fetch OTOBO tickets' }, 502, corsHeader);
+  }
+}
+
+// Get a fresh Google access token using the stored refresh token (used by Chat API proxy)
+async function getGoogleAccessToken(env) {
+  const cached = await env.OAUTH_TOKENS.get('token_data');
+  if (cached) {
+    const tokenData = JSON.parse(cached);
+    if (tokenData.expires_at > Date.now() + 300000) {
+      return tokenData.access_token;
+    }
+  }
+
+  const refreshToken = await env.OAUTH_TOKENS.get('refresh_token');
+  if (!refreshToken) return null;
+
+  const tokenResponse = await fetch(GOOGLE_TOKEN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: env.GOOGLE_CLIENT_ID,
+      client_secret: env.GOOGLE_CLIENT_SECRET,
+      refresh_token: refreshToken,
+      grant_type: 'refresh_token',
+    }),
+  });
+
+  const tokens = await tokenResponse.json();
+  if (tokens.error || !tokens.access_token) return null;
+
+  await env.OAUTH_TOKENS.put('token_data', JSON.stringify({
+    access_token: tokens.access_token,
+    expires_at: Date.now() + (tokens.expires_in * 1000),
+  }));
+  return tokens.access_token;
+}
+
+// Google Chat: Fetch recent messages from a space
+async function handleChatMessages(env, url, corsHeader) {
+  const spaceId = url.searchParams.get('spaceId');
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '10', 10), 50);
+
+  if (!spaceId || !/^spaces\/[A-Za-z0-9_-]+$/.test(spaceId)) {
+    return jsonResponse({ error: 'Invalid spaceId' }, 400, corsHeader);
+  }
+
+  const accessToken = await getGoogleAccessToken(env);
+  if (!accessToken) {
+    return jsonResponse({ error: 'not_authenticated' }, 401, corsHeader);
+  }
+
+  try {
+    // Fetch messages from last 30 days, then sort newest-first client-side
+    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const filter = encodeURIComponent(`createTime > "${since}"`);
+    const apiUrl = `https://chat.googleapis.com/v1/${spaceId}/messages?pageSize=${limit * 2}&filter=${filter}`;
+
+    const res = await fetch(apiUrl, {
+      headers: { 'Authorization': `Bearer ${accessToken}` },
+    });
+
+    if (!res.ok) {
+      const errBody = await res.text();
+      console.error('Chat API error:', res.status, errBody);
+      return jsonResponse({ error: `Chat API ${res.status}` }, 502, corsHeader);
+    }
+
+    const data = await res.json();
+    const messages = (data.messages || [])
+      .map(m => ({
+        name: m.name,
+        text: m.text || m.formattedText || m.argumentText || '',
+        createTime: m.createTime,
+        sender: m.sender?.displayName || m.sender?.name || 'Unknown',
+        senderType: m.sender?.type || 'HUMAN',
+        thread: m.thread?.name,
+      }))
+      .sort((a, b) => new Date(b.createTime) - new Date(a.createTime))
+      .slice(0, limit);
+
+    return jsonResponse({ messages, spaceUri: `https://chat.google.com/room/${spaceId.replace('spaces/', '')}` }, 200, corsHeader);
+  } catch (error) {
+    console.error('Chat fetch error:', error);
+    return jsonResponse({ error: 'Failed to fetch chat messages' }, 502, corsHeader);
   }
 }
 
