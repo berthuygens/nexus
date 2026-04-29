@@ -1423,8 +1423,7 @@
                             Issues
                         </div>
                         <div class="card-toggle" id="issues-toggle">
-                            <button class="card-toggle-btn active" data-view="assigned">Assigned <span id="issues-assigned-count">0</span></button>
-                            <button class="card-toggle-btn" data-view="created">Created <span id="issues-created-count">0</span></button>
+                            <button class="card-toggle-btn active" data-view="github" id="issues-github-btn"><span id="issues-github-label">Assigned</span> <span id="issues-github-count">0</span></button>
                             <button class="card-toggle-btn" data-view="helpdesk">Helpdesk <span id="issues-helpdesk-count">0</span></button>
                             <button class="card-toggle-btn" data-view="prs">PRs <span id="issues-prs-count">0</span></button>
                         </div>
@@ -2060,7 +2059,10 @@
 
         // ========== GitHub API ==========
         let issuesData = { assigned: [], created: [], helpdesk: [], prs: [] };
-        let currentIssuesView = 'assigned';
+        let currentIssuesView = 'github';
+        let githubSubView = 'assigned'; // rotates between 'assigned' and 'created'
+        let githubRotateTimer = null;
+        const GITHUB_ROTATE_MS = 8000;
 
         async function fetchGitHubData() {
             const config = getConfig();
@@ -2092,12 +2094,8 @@
                 issuesData.assigned = assignedIssues;
                 issuesData.created = createdIssues;
 
-                // Default to Created tab if no assigned issues, otherwise Assigned
-                currentIssuesView = assignedIssues.length > 0 ? 'assigned' : 'created';
-                const toggleBtns = document.querySelectorAll('#issues-toggle .card-toggle-btn');
-                toggleBtns.forEach(btn => {
-                    btn.classList.toggle('active', btn.dataset.view === currentIssuesView);
-                });
+                // Pick rotation start: assigned if it has items, otherwise created
+                githubSubView = assignedIssues.length > 0 ? 'assigned' : 'created';
 
                 const prsRes = await fetch(`https://api.github.com/search/issues?q=is:pr+is:open+author:${user.login}&per_page=10&sort=updated`, { headers });
                 const prsData = await prsRes.json();
@@ -2130,19 +2128,15 @@
 
                 if (currentIssuesView === 'prs') {
                     renderPRs(combinedPrs);
-                } else {
-                    renderIssues(currentIssuesView === 'assigned' ? assignedIssues : createdIssues, currentIssuesView);
+                } else if (currentIssuesView === 'github') {
+                    renderIssues(issuesData[githubSubView], githubSubView);
                 }
 
                 document.getElementById('github-status').classList.add('connected');
-                const assignedCountEl = document.getElementById('issues-assigned-count');
-                const createdCountEl = document.getElementById('issues-created-count');
+                updateGithubTabLabel();
+                startGithubRotation();
                 const prsCountEl = document.getElementById('issues-prs-count');
-                assignedCountEl.textContent = assignedIssues.length;
-                createdCountEl.textContent = createdIssues.length;
                 prsCountEl.textContent = combinedPrs.length;
-                assignedCountEl.classList.toggle('has-items', assignedIssues.length > 0);
-                createdCountEl.classList.toggle('has-items', createdIssues.length > 0);
                 prsCountEl.classList.toggle('has-items', combinedPrs.length > 0);
             } catch (err) {
                 console.error('GitHub fetch error:', err);
@@ -2166,10 +2160,33 @@
                 renderHelpdeskTickets(issuesData.helpdesk);
             } else if (view === 'prs') {
                 renderPRs(issuesData.prs);
-            } else {
-                renderIssues(issuesData[view], view);
+            } else if (view === 'github') {
+                renderIssues(issuesData[githubSubView], githubSubView);
             }
         });
+
+        // Rotate the GitHub tab between Assigned and Created so all info stays visible in 3 tabs
+        function updateGithubTabLabel() {
+            const labelEl = document.getElementById('issues-github-label');
+            const countEl = document.getElementById('issues-github-count');
+            const items = issuesData[githubSubView] || [];
+            labelEl.textContent = githubSubView === 'assigned' ? 'Assigned' : 'Created';
+            countEl.textContent = items.length;
+            countEl.classList.toggle('has-items', items.length > 0);
+        }
+
+        function rotateGithubTab() {
+            githubSubView = githubSubView === 'assigned' ? 'created' : 'assigned';
+            updateGithubTabLabel();
+            if (currentIssuesView === 'github') {
+                renderIssues(issuesData[githubSubView], githubSubView);
+            }
+        }
+
+        function startGithubRotation() {
+            if (githubRotateTimer) clearInterval(githubRotateTimer);
+            githubRotateTimer = setInterval(rotateGithubTab, GITHUB_ROTATE_MS);
+        }
 
         // ========== OTRS Helpdesk ==========
         async function fetchOTRSTickets() {
